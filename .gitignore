@@ -1,0 +1,46 @@
+# Build
+bin/
+obj/
+out/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+appsettings.*.local.json
+secrets.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Test / coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Tooling
+.dotnet/
+*.swp
+
+# Local ASP.NET configuration
+appsettings.Development.json
