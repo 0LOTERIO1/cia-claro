@@ -7,5 +7,7 @@ public enum IntentType
     InternetProblem = 2,
     ModemRestarted = 3,
     ContinueSupport = 4,
-    HumanHandoff = 5
+    HumanHandoff = 5,
+    ModemReplacement = 6,
+    BillingQuestion = 7
 }

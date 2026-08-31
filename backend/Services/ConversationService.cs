@@ -16,6 +16,7 @@ public class ConversationService : IConversationService
     private readonly IAiService _aiService;
     private readonly IHandoffService _handoffService;
     private readonly IProtocolService _protocolService;
+    private readonly IOrchestrationService _orchestration;
     private readonly ILogger<ConversationService> _logger;
 
     public ConversationService(
@@ -27,6 +28,7 @@ public class ConversationService : IConversationService
         IAiService aiService,
         IHandoffService handoffService,
         IProtocolService protocolService,
+        IOrchestrationService orchestration,
         ILogger<ConversationService> logger)
     {
         _customers = customers;
@@ -37,6 +39,7 @@ public class ConversationService : IConversationService
         _aiService = aiService;
         _handoffService = handoffService;
         _protocolService = protocolService;
+        _orchestration = orchestration;
         _logger = logger;
     }
 
@@ -71,10 +74,20 @@ public class ConversationService : IConversationService
 
         context = await _contextService.UpdateFromIntentAsync(context, intent, request.Content, cancellationToken);
 
-        var contextRestored = intent == IntentType.ContinueSupport &&
-                              (context.IssueType != IssueType.None || context.ModemRestarted);
+        var routing = await _orchestration.RouteAsync(session, intent, context, cancellationToken);
 
-        if (contextRestored)
+        var contextRestored = routing.Transferred ||
+                              (intent == IntentType.ContinueSupport &&
+                               (context.IssueType != IssueType.None || context.ModemRestarted));
+
+        if (routing.Transferred)
+        {
+            _logger.LogInformation(
+                "Context transferred. Protocol={Protocol} From={From} To={To} IssueType={IssueType} ModemRestarted={ModemRestarted}",
+                session.Protocol, routing.Previous, routing.Current, context.IssueType, context.ModemRestarted);
+        }
+
+        if (contextRestored && !routing.Transferred)
         {
             _logger.LogInformation("Context restored. Protocol={Protocol} IssueType={IssueType} ModemRestarted={ModemRestarted}",
                 session.Protocol, context.IssueType, context.ModemRestarted);
@@ -111,6 +124,10 @@ public class ConversationService : IConversationService
         }
 
         var history = await _messages.GetBySessionIdAsync(session.Id, cancellationToken);
+        var transfers = session.Transfers.OrderBy(t => t.CreatedAt).Select(t => t.ToDto()).ToList();
+        var transferNotice = routing.Transferred
+            ? $"Seu contexto foi transferido para {DepartmentNames.Format(routing.Current)}."
+            : null;
 
         return new SendMessageResponse
         {
@@ -119,11 +136,16 @@ public class ConversationService : IConversationService
             Status = session.Status,
             DetectedIntent = session.DetectedIntent,
             CurrentChannel = session.CurrentChannel,
+            CurrentDepartment = session.CurrentDepartment,
+            PreviousDepartment = session.PreviousDepartment,
             ContextRestored = contextRestored,
+            DepartmentChanged = routing.Transferred,
+            TransferNotice = transferNotice,
             Context = context.ToDto(),
             AssistantMessage = assistantMessage.ToDto(),
             Handoff = handoff,
-            Messages = history.Select(m => m.ToDto()).ToList()
+            Messages = history.Select(m => m.ToDto()).ToList(),
+            Transfers = transfers
         };
     }
 
@@ -186,6 +208,24 @@ public class ConversationService : IConversationService
         return session.ToDto(contextRestored);
     }
 
+    public async Task<SessionDto> ChangeDepartmentAsync(
+        Guid sessionId,
+        DepartmentType department,
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _sessions.GetByIdAsync(sessionId, cancellationToken)
+            ?? throw new NotFoundException("Sessão não encontrada.");
+
+        var routing = await _orchestration.ChangeDepartmentAsync(
+            session,
+            department,
+            string.IsNullOrWhiteSpace(reason) ? "Transferência manual para demonstração" : reason.Trim(),
+            cancellationToken);
+
+        return session.ToDto(routing.Transferred, routing.Transferred);
+    }
+
     private async Task<ConversationSession> GetOrCreateActiveSessionAsync(
         Customer customer,
         ChannelType channel,
@@ -214,6 +254,7 @@ public class ConversationService : IConversationService
             Customer = customer,
             InitialChannel = channel,
             CurrentChannel = channel,
+            CurrentDepartment = DepartmentType.Triage,
             Status = SessionStatus.Active,
             DetectedIntent = IntentType.Unknown,
             CreatedAt = DateTime.UtcNow,

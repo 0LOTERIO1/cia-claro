@@ -1,5 +1,5 @@
 import type { DashboardDto } from '../types/api'
-import { formatChannel } from '../services/labels'
+import { formatDepartment } from '../services/labels'
 
 interface Props {
   dashboard: DashboardDto
@@ -11,8 +11,8 @@ export function DashboardCards({ dashboard }: Props) {
     { label: 'Ativos', value: dashboard.activeSessions },
     { label: 'Resolvidos', value: dashboard.resolvedSessions },
     { label: 'Transferidos', value: dashboard.transferredSessions },
-    ...dashboard.sessionsByChannel.map((item) => ({
-      label: `Canal ${formatChannel(item.channel)}`,
+    ...(dashboard.sessionsByDepartment ?? []).map((item) => ({
+      label: formatDepartment(item.department),
       value: item.count,
     })),
   ]

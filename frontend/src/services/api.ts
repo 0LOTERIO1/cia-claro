@@ -1,9 +1,9 @@
 import axios, { isAxiosError } from 'axios'
 import type {
   AdminSessionDetailDto,
-  ChannelType,
   CustomerDto,
   DashboardDto,
+  DepartmentType,
   HandoffDto,
   MessageDto,
   SendMessageResponse,
@@ -42,16 +42,19 @@ export const apiClient = {
     const { data } = await api.get<MessageDto[]>(`/api/sessions/${sessionId}/messages`)
     return data
   },
-  sendMessage: async (customerId: string, channel: ChannelType, content: string) => {
+  sendMessage: async (customerId: string, content: string) => {
     const { data } = await api.post<SendMessageResponse>('/api/chat/message', {
       customerId,
-      channel,
+      channel: 'AppClaro',
       content,
     })
     return data
   },
-  changeChannel: async (sessionId: string, channel: ChannelType) => {
-    const { data } = await api.post<SessionDto>(`/api/sessions/${sessionId}/channel`, { channel })
+  changeDepartment: async (sessionId: string, department: DepartmentType, reason: string) => {
+    const { data } = await api.post<SessionDto>(`/api/sessions/${sessionId}/department`, {
+      department,
+      reason,
+    })
     return data
   },
   createHandoff: async (sessionId: string) => {

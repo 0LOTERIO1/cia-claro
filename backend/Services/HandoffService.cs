@@ -67,6 +67,11 @@ public class HandoffService : IHandoffService
 
         session.Status = SessionStatus.Transferred;
         session.DetectedIntent = IntentType.HumanHandoff;
+        if (session.CurrentDepartment != DepartmentType.HumanAgent)
+        {
+            session.PreviousDepartment = session.CurrentDepartment;
+            session.CurrentDepartment = DepartmentType.HumanAgent;
+        }
         session.UpdatedAt = DateTime.UtcNow;
         await _sessions.SaveChangesAsync(cancellationToken);
 

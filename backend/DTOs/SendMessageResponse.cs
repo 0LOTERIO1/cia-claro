@@ -9,9 +9,14 @@ public class SendMessageResponse
     public SessionStatus Status { get; set; }
     public IntentType DetectedIntent { get; set; }
     public ChannelType CurrentChannel { get; set; }
+    public DepartmentType CurrentDepartment { get; set; }
+    public DepartmentType? PreviousDepartment { get; set; }
     public bool ContextRestored { get; set; }
+    public bool DepartmentChanged { get; set; }
+    public string? TransferNotice { get; set; }
     public ContextDto? Context { get; set; }
     public MessageDto AssistantMessage { get; set; } = null!;
     public HandoffDto? Handoff { get; set; }
     public IReadOnlyList<MessageDto> Messages { get; set; } = Array.Empty<MessageDto>();
+    public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
 }

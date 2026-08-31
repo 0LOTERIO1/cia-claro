@@ -4,6 +4,23 @@ export function formatChannel(channel: string): string {
   return channel === 'WhatsApp' ? 'WhatsApp' : 'App Claro'
 }
 
+export function formatDepartment(department?: string | null): string {
+  switch (department) {
+    case 'Triage':
+      return 'Triagem'
+    case 'TechnicalSupport':
+      return 'Suporte Técnico'
+    case 'ModemReplacement':
+      return 'Troca de Modem'
+    case 'Financial':
+      return 'Financeiro'
+    case 'HumanAgent':
+      return 'Atendimento Humano'
+    default:
+      return department ?? 'Triagem'
+  }
+}
+
 export function formatStatus(status: string): string {
   switch (status) {
     case 'Active':
@@ -23,6 +40,10 @@ export function formatIntent(intent: string): string {
       return 'Problema de internet'
     case 'ModemRestarted':
       return 'Modem reiniciado'
+    case 'ModemReplacement':
+      return 'Troca de modem'
+    case 'BillingQuestion':
+      return 'Dúvida financeira'
     case 'ContinueSupport':
       return 'Continuar atendimento'
     case 'HumanHandoff':

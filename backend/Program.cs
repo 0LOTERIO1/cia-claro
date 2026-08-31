@@ -77,10 +77,12 @@ builder.Services.AddScoped<ISessionRepository, SessionRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IContextRepository, ContextRepository>();
 builder.Services.AddScoped<IHandoffRepository, HandoffRepository>();
+builder.Services.AddScoped<ITransferRepository, TransferRepository>();
 
 builder.Services.AddScoped<IIntentService, IntentService>();
 builder.Services.AddScoped<IContextService, ContextService>();
 builder.Services.AddScoped<IProtocolService, ProtocolService>();
+builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IHandoffService, HandoffService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();

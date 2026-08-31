@@ -1,12 +1,11 @@
 import type { SessionDto } from '../types/api'
-import { formatChannel, formatIntent, formatStatus } from '../services/labels'
+import { formatDepartment, formatIntent, formatStatus } from '../services/labels'
 
 interface Props {
   session: SessionDto | null
-  channelLabel: string
 }
 
-export function SessionInfo({ session, channelLabel }: Props) {
+export function SessionInfo({ session }: Props) {
   return (
     <section className="panel">
       <h2>Sessão</h2>
@@ -16,13 +15,17 @@ export function SessionInfo({ session, channelLabel }: Props) {
           <dd className="protocol">{session?.protocol ?? 'Aguardando início'}</dd>
         </div>
         <div>
-          <dt>Canal atual</dt>
+          <dt>Área atual</dt>
           <dd>
-            <span className={`channel-pill ${channelLabel === 'WhatsApp' ? 'wa' : 'app'}`}>
-              {channelLabel.toUpperCase()}
-            </span>
+            <span className="channel-pill app">{formatDepartment(session?.currentDepartment).toUpperCase()}</span>
           </dd>
         </div>
+        {session?.previousDepartment && (
+          <div>
+            <dt>Área anterior</dt>
+            <dd>{formatDepartment(session.previousDepartment)}</dd>
+          </div>
+        )}
         <div>
           <dt>Status</dt>
           <dd>{session ? formatStatus(session.status) : 'Sem atendimento'}</dd>
@@ -31,12 +34,6 @@ export function SessionInfo({ session, channelLabel }: Props) {
           <dt>Intenção</dt>
           <dd>{session ? formatIntent(session.detectedIntent) : '—'}</dd>
         </div>
-        {session?.initialChannel && session.initialChannel !== session.currentChannel && (
-          <div>
-            <dt>Canal inicial</dt>
-            <dd>{formatChannel(session.initialChannel)}</dd>
-          </div>
-        )}
       </dl>
     </section>
   )

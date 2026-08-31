@@ -14,6 +14,16 @@ public class IntentService : IIntentService
             return IntentType.HumanHandoff;
         }
 
+        if (ContainsAny(text, "cobranca", "cobrança", "cobrada", "cobrado", "vai ser cobrada", "gerar cobranca", "gerar cobrança", "financeiro", "fatura", "valor extra"))
+        {
+            return IntentType.BillingQuestion;
+        }
+
+        if (ContainsAny(text, "trocar o modem", "troca do modem", "troca de modem", "substituicao", "substituição", "substituir o modem", "preciso trocar"))
+        {
+            return IntentType.ModemReplacement;
+        }
+
         if (ContainsAny(text, "continuar meu atendimento", "continuar o atendimento", "continuar atendimento", "quero continuar"))
         {
             return IntentType.ContinueSupport;
@@ -24,7 +34,7 @@ public class IntentService : IIntentService
             return IntentType.ModemRestarted;
         }
 
-        if (ContainsAny(text, "internet", "conexao", "conexão", "wifi", "wi-fi", "modem", "sem sinal"))
+        if (ContainsAny(text, "internet", "conexao", "conexão", "wifi", "wi-fi", "sem sinal"))
         {
             return IntentType.InternetProblem;
         }

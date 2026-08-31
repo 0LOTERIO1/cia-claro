@@ -12,7 +12,7 @@ public static class DtoMapper
         CreatedAt = customer.CreatedAt
     };
 
-    public static SessionDto ToDto(this ConversationSession session, bool contextRestored = false) => new()
+    public static SessionDto ToDto(this ConversationSession session, bool contextRestored = false, bool departmentChanged = false) => new()
     {
         Id = session.Id,
         Protocol = session.Protocol,
@@ -20,12 +20,19 @@ public static class DtoMapper
         CustomerName = session.Customer?.Name ?? string.Empty,
         InitialChannel = session.InitialChannel,
         CurrentChannel = session.CurrentChannel,
+        CurrentDepartment = session.CurrentDepartment,
+        PreviousDepartment = session.PreviousDepartment,
         Status = session.Status,
         DetectedIntent = session.DetectedIntent,
         CreatedAt = session.CreatedAt,
         UpdatedAt = session.UpdatedAt,
         ContextRestored = contextRestored,
-        Context = session.Context?.ToDto()
+        DepartmentChanged = departmentChanged,
+        Context = session.Context?.ToDto(),
+        Transfers = (session.Transfers ?? Array.Empty<DepartmentTransfer>())
+            .OrderBy(t => t.CreatedAt)
+            .Select(t => t.ToDto())
+            .ToList()
     };
 
     public static MessageDto ToDto(this Message message) => new()
@@ -44,8 +51,24 @@ public static class DtoMapper
         SessionId = context.SessionId,
         IssueType = context.IssueType,
         ModemRestarted = context.ModemRestarted,
+        InternetStillDown = context.InternetStillDown,
+        OriginalProblem = context.OriginalProblem,
+        TroubleshootingPerformed = context.TroubleshootingPerformed,
+        CurrentRequest = context.CurrentRequest,
+        ImportantFacts = context.ImportantFacts,
+        ContextSummary = context.ContextSummary,
         AdditionalData = context.AdditionalData,
         UpdatedAt = context.UpdatedAt
+    };
+
+    public static TransferDto ToDto(this DepartmentTransfer transfer) => new()
+    {
+        Id = transfer.Id,
+        SessionId = transfer.SessionId,
+        FromDepartment = transfer.FromDepartment,
+        ToDepartment = transfer.ToDepartment,
+        Reason = transfer.Reason,
+        CreatedAt = transfer.CreatedAt
     };
 
     public static HandoffDto ToDto(this Handoff handoff) => new()

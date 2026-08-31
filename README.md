@@ -2,26 +2,26 @@
 
 Aplicação funcional da Sprint 3 do Challenge FIAP em parceria com a Claro.
 
-A CIA é uma solução de atendimento omnicanal. O cliente inicia o suporte no App Claro, troca para o WhatsApp e continua a mesma sessão, com o mesmo protocolo e com o contexto já registrado no PostgreSQL.
+A CIA é a camada central de orquestração e memória compartilhada do atendimento da Claro. Ela integra diferentes fluxos e áreas, preservando o contexto do cliente durante redirecionamentos para evitar que ele precise repetir informações já fornecidas.
 
 ## O que esta versão demonstra
 
 - Frontend React chamando a API ASP.NET Core
 - Persistência real em PostgreSQL
 - Sessão, mensagens, contexto e transbordo
-- Troca de canal App Claro → WhatsApp sem criar outra sessão
-- Recuperação de contexto no backend
+- Jornada entre Triagem, Suporte Técnico, Troca de Modem, Financeiro e Atendimento Humano
+- Mesmo protocolo, mesma sessão e mesmo contexto após cada redirecionamento
 - Dashboard administrativo alimentado pela API
 
 ## Arquitetura
 
 ```
 Cliente
-  → App Claro / WhatsApp (simulação no React)
+  → Frontend
     → REST API JSON
-      → ASP.NET Core Controllers
-        → Services
-          → Repositories
+      → Orquestrador CIA
+        → Contexto central compartilhado
+          → Triagem / Técnico / Troca de Modem / Financeiro / Humano
             → Entity Framework Core
               → PostgreSQL
 ```
@@ -31,6 +31,7 @@ Serviços especializados:
 - `ConversationService`
 - `ContextService`
 - `IntentService`
+- `OrchestrationService`
 - `AiService`
 - `HandoffService`
 - `DashboardService`
@@ -159,20 +160,19 @@ Esses dados existem apenas para a demonstração acadêmica.
 
 ## Fluxo completo de demonstração
 
-1. Abra http://localhost:5173 com o canal **App Claro**.
+1. Abra o frontend com a área **Triagem**.
 2. Envie: `Minha internet não está funcionando.`
-3. A API cria a sessão, o protocolo e persiste as mensagens.
-4. Envie: `Sim, já reiniciei o modem e continua sem internet.`
-5. O contexto no PostgreSQL deve ficar com `IssueType = InternetConnection` e `ModemRestarted = true`.
-6. Troque o canal para **WhatsApp**.
-7. O protocolo permanece o mesmo.
-8. Envie: `Quero continuar meu atendimento.`
-9. A CIA recupera o contexto e menciona a internet e o modem já reiniciado.
-10. Clique em **Falar com atendente** ou envie `Quero falar com um atendente.`
-11. O status muda para `Transferred` e o resumo de transbordo é exibido.
-12. Abra `/admin` e confira os indicadores e o histórico.
+3. A CIA cria a sessão, o protocolo e encaminha para **Suporte Técnico**.
+4. Envie: `Já reiniciei o modem e continua sem internet.`
+5. O contexto no PostgreSQL deve ficar com `InternetConnection`, `ModemRestarted = true` e `InternetStillDown = true`.
+6. A área passa para **Troca de Modem** sem perguntar de novo o problema nem o reinício.
+7. Envie: `Essa troca vai gerar alguma cobrança?`
+8. A área passa para **Financeiro** com a jornada anterior.
+9. Clique em **Falar com atendente** ou envie `Quero falar com um atendente.`
+10. O status muda para `Transferred` e o resumo mostra a jornada completa.
+11. Abra `/admin` e confira contexto, histórico e departamentos.
 
-Para repetir a demonstração sem apagar o banco, use **Novo atendimento** na tela do chat após um transbordo. A próxima mensagem cria uma nova sessão ativa, com novo protocolo.
+Para repetir a demonstração sem apagar o banco, use **Novo atendimento** após um transbordo.
 
 ## Endpoints principais
 
@@ -183,6 +183,7 @@ Para repetir a demonstração sem apagar o banco, use **Novo atendimento** na te
 - `GET /api/sessions/customer/{customerId}`
 - `POST /api/chat/message`
 - `POST /api/sessions/{id}/channel`
+- `POST /api/sessions/{id}/department`
 - `POST /api/sessions/{id}/handoff`
 - `GET /api/admin/dashboard`
 - `GET /api/admin/sessions`

@@ -4,104 +4,80 @@ Vídeo técnico de 6 a 8 minutos. Não é pitch comercial.
 
 ## 0:00–0:30 — Apresentação técnica
 
-Falar:
+“Apresentamos a versão funcional da CIA — Claro Inteligência Artificial, composta por frontend React, backend ASP.NET Core e banco PostgreSQL. A CIA é a camada central de contexto entre as áreas de atendimento.”
 
-“Apresentamos a versão funcional da CIA — Claro Inteligência Artificial, composta por frontend React, backend ASP.NET Core e banco PostgreSQL.”
+## 0:30–1:10 — Arquitetura
 
-Mostrar a estrutura do repositório: `/frontend`, `/backend`, `/docs`.
+Mostrar `docs/ARQUITETURA.md`.
 
-## 0:30–1:20 — Arquitetura
+Explicar:
 
-Abrir `docs/ARQUITETURA.md` e o diagrama Mermaid.
+- a CIA é dona do contexto
+- os bots não são donos do histórico
+- orquestrador decide a área sem criar outra sessão
 
-Explicar rapidamente:
+## 1:10–2:00 — Triagem
 
-- React chama a API REST
-- Controllers delegam para Services
-- Repositories persistem com EF Core no PostgreSQL
-- `ContextService` guarda o estado da jornada
+Abrir o frontend.
 
-## 1:20–2:30 — Início no App Claro
-
-Abrir http://localhost:5173.
-
-Mostrar:
-
-- Cliente Lucas
-- Customer ID `CLIENTE-001`
-- Canal **APP CLARO**
+Mostrar Lucas / `CLIENTE-001` e área **Triagem**.
 
 Enviar:
 
 `Minha internet não está funcionando.`
 
-Mostrar a resposta da CIA e o protocolo criado.
+Mostrar redirecionamento para **Suporte Técnico** e o protocolo criado.
 
-## 2:30–3:20 — Contexto do modem
+## 2:00–3:00 — Suporte Técnico
+
+O técnico pergunta se o modem já foi reiniciado.
 
 Enviar:
 
-`Sim, já reiniciei o modem e continua sem internet.`
+`Já reiniciei e continua sem internet.`
 
-Mostrar na interface a intenção e, se possível, no Swagger ou no detalhe administrativo que o contexto ficou com:
+Mostrar no contexto:
 
 - `IssueType = InternetConnection`
 - `ModemRestarted = true`
+- `InternetStillDown = true`
 
-## 3:20–4:30 — Continuidade no WhatsApp
+## 3:00–4:00 — Troca de Modem
 
-Trocar o seletor para **WhatsApp**.
+Mostrar a transferência automática para **Troca de Modem**.
 
-Destacar que o protocolo não mudou.
+O novo bot já sabe:
+
+- problema de internet
+- modem reiniciado
+- falha persistente
+
+Ele **não** pergunta “qual é o seu problema?” nem “você já reiniciou o modem?”.
+
+## 4:00–5:00 — Financeiro
 
 Enviar:
 
-`Quero continuar meu atendimento.`
+`Essa troca vai gerar alguma cobrança?`
 
-Mostrar a mensagem:
+Mostrar redirecionamento para **Financeiro**. O financeiro continua sabendo a jornada.
 
-“Contexto do atendimento anterior recuperado.”
+## 5:00–5:50 — API real
 
-A resposta da CIA deve mencionar a internet residencial e a reinicialização do modem.
+Abrir Swagger / logs do backend.
 
-## 4:30–5:15 — Provar que a API é real
+Mostrar `GET /api/health` e a sessão com `currentDepartment` e `transfers`.
 
-Abrir http://localhost:5080/swagger.
+## 5:50–6:40 — Atendimento humano
 
-Executar `GET /api/health`.
+Enviar `Quero falar com um atendente.` ou clicar no botão.
 
-Opcionalmente mostrar `GET /api/sessions/customer/CLIENTE-001`.
+Mostrar o resumo com a jornada completa.
 
-Mostrar os logs do backend:
+## 6:40–7:20 — Dashboard
 
-- Customer identified
-- Session created
-- Intent detected
-- Channel changed
-- Context restored
+Abrir `/admin` e o detalhe da sessão: contexto, histórico e jornada.
 
-## 5:15–6:00 — Transbordo
+## 7:20–7:40 — Encerramento
 
-Clicar em **Falar com atendente** ou enviar:
-
-`Quero falar com um atendente.`
-
-Mostrar o resumo estruturado e o status **Transferido**.
-
-## 6:00–6:50 — Dashboard
-
-Abrir http://localhost:5173/admin.
-
-Mostrar totais, canais e a tabela.
-
-Entrar no atendimento e mostrar histórico, contexto e resumo.
-
-## 6:50–7:30 — Tecnologias e encerramento
-
-Encerrar com a stack:
-
-React + TypeScript, ASP.NET Core .NET 8, Entity Framework Core, PostgreSQL, REST e Swagger.
-
-Frase final:
-
-“O cliente inicia no App Claro e continua no WhatsApp sem repetir o que já informou, porque o contexto ficou persistido no backend.”
+A CIA preserva o mesmo protocolo, a mesma sessão e o mesmo contexto entre as áreas. O cliente não precisa repetir o que já informou.

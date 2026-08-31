@@ -33,7 +33,7 @@ public class ExternalAiProvider : IAiProvider
         try
         {
             var content = await CompleteAsync(
-                "Classifique a intenção em exatamente um destes valores: Greeting, InternetProblem, ModemRestarted, ContinueSupport, HumanHandoff, Unknown. Responda só com o valor.",
+                "Classifique a intenção em exatamente um destes valores: Greeting, InternetProblem, ModemRestarted, ModemReplacement, BillingQuestion, ContinueSupport, HumanHandoff, Unknown. Responda só com o valor.",
                 message,
                 cancellationToken);
 
@@ -66,10 +66,16 @@ public class ExternalAiProvider : IAiProvider
                 Cliente: {customer.Name} ({customer.Id})
                 Protocolo: {session.Protocol}
                 Canal atual: {session.CurrentChannel}
+                Área atual: {session.CurrentDepartment}
+                Área anterior: {session.PreviousDepartment}
                 Intenção: {intent}
                 Problema: {context.IssueType}
+                Problema original: {context.OriginalProblem}
                 Modem reiniciado: {context.ModemRestarted}
-                Responda em português, de forma objetiva, sem inventar dados.
+                Internet ainda fora: {context.InternetStillDown}
+                Pedido atual: {context.CurrentRequest}
+                Resumo: {context.ContextSummary}
+                Não pergunte novamente o que já está no contexto. Responda em português, de forma objetiva, sem inventar dados.
                 """;
 
             var response = await CompleteAsync(prompt, message, cancellationToken);

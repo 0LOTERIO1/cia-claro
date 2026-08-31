@@ -7,4 +7,5 @@ public class AdminSessionDetailDto
     public ContextDto? Context { get; set; }
     public IReadOnlyList<MessageDto> Messages { get; set; } = Array.Empty<MessageDto>();
     public HandoffDto? Handoff { get; set; }
+    public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
 }

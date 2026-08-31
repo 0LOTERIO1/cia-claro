@@ -20,6 +20,7 @@ public class SessionRepository : ISessionRepository
         return _db.ConversationSessions
             .Include(s => s.Customer)
             .Include(s => s.Context)
+            .Include(s => s.Transfers)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
@@ -28,6 +29,7 @@ public class SessionRepository : ISessionRepository
         return _db.ConversationSessions
             .Include(s => s.Customer)
             .Include(s => s.Context)
+            .Include(s => s.Transfers)
             .Where(s => s.CustomerId == customerId && s.Status == SessionStatus.Active)
             .OrderByDescending(s => s.UpdatedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -38,6 +40,7 @@ public class SessionRepository : ISessionRepository
         return await _db.ConversationSessions
             .Include(s => s.Customer)
             .Include(s => s.Context)
+            .Include(s => s.Transfers)
             .Where(s => s.CustomerId == customerId)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(cancellationToken);
@@ -48,6 +51,7 @@ public class SessionRepository : ISessionRepository
         return await _db.ConversationSessions
             .Include(s => s.Customer)
             .Include(s => s.Context)
+            .Include(s => s.Transfers)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(cancellationToken);
     }

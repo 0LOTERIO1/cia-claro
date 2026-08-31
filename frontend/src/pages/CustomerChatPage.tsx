@@ -1,21 +1,26 @@
 import { Link } from 'react-router-dom'
-import { ChannelSelector } from '../components/ChannelSelector'
 import { ChatWindow } from '../components/ChatWindow'
 import { CustomerInfo } from '../components/CustomerInfo'
 import { HandoffSummary } from '../components/HandoffSummary'
+import { JourneyTimeline } from '../components/JourneyTimeline'
 import { SessionInfo } from '../components/SessionInfo'
 import { useChat } from '../hooks/useChat'
-import { formatChannel } from '../services/labels'
+import type { DepartmentType } from '../types/api'
+
+const MANUAL_ROUTES: { department: DepartmentType; label: string; reason: string }[] = [
+  { department: 'TechnicalSupport', label: 'Encaminhar para Técnico', reason: 'Transferência manual para Suporte Técnico' },
+  { department: 'ModemReplacement', label: 'Encaminhar para Troca de Modem', reason: 'Transferência manual para Troca de Modem' },
+  { department: 'Financial', label: 'Encaminhar para Financeiro', reason: 'Transferência manual para Financeiro' },
+]
 
 export function CustomerChatPage() {
   const chat = useChat()
-  const theme = chat.channel === 'WhatsApp' ? 'theme-whatsapp' : 'theme-app'
 
   return (
-    <div className={`app-shell ${theme}`}>
+    <div className="app-shell theme-app">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Atendimento omnicanal</p>
+          <p className="eyebrow">Contexto compartilhado entre áreas</p>
           <h1>CIA — Claro Inteligência Artificial</h1>
         </div>
         <nav>
@@ -32,24 +37,33 @@ export function CustomerChatPage() {
         </div>
       )}
 
-      {chat.contextRestored && (
-        <div className="banner info">Contexto do atendimento anterior recuperado.</div>
+      {(chat.transferNotice || chat.contextRestored) && (
+        <div className="banner info">
+          {chat.transferNotice ?? 'Continuando seu atendimento com o contexto anterior.'}
+        </div>
       )}
 
       <div className="layout">
         <aside>
           <CustomerInfo customer={chat.customer} />
-          <SessionInfo session={chat.session} channelLabel={formatChannel(chat.channel)} />
+          <SessionInfo session={chat.session} />
+          <JourneyTimeline current={chat.session?.currentDepartment} transfers={chat.transfers} />
           <section className="panel">
-            <h2>Trocar canal</h2>
-            <ChannelSelector
-              channel={chat.channel}
-              disabled={chat.sending || chat.loading}
-              onChange={(channel) => void chat.changeChannel(channel)}
-            />
-            <p className="hint">
-              A troca atualiza o canal da mesma sessão. O protocolo permanece o mesmo.
-            </p>
+            <h2>Demonstração</h2>
+            <p className="hint">O roteamento ocorre pelas mensagens. Use os botões só se precisar forçar uma área.</p>
+            <div className="demo-actions">
+              {MANUAL_ROUTES.map((item) => (
+                <button
+                  key={item.department}
+                  type="button"
+                  className="handoff-btn"
+                  disabled={!chat.session || chat.sending || chat.session.status === 'Transferred'}
+                  onClick={() => void chat.changeDepartment(item.department, item.reason)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </section>
           <button
             type="button"

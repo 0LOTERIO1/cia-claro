@@ -36,8 +36,10 @@ internal static class TestComposition
         IMessageRepository messages = new MessageRepository(db);
         IContextRepository contexts = new ContextRepository(db);
         IHandoffRepository handoffs = new HandoffRepository(db);
+        ITransferRepository transfers = new TransferRepository(db);
         IIntentService intent = new IntentService();
         IContextService contextService = new ContextService(contexts, sessions, NullLogger<ContextService>.Instance);
+        IOrchestrationService orchestration = new OrchestrationService(transfers, sessions, NullLogger<OrchestrationService>.Instance);
         IAiProvider provider = new LocalFallbackAiProvider(intent);
         IAiService ai = new AiService(
             provider,
@@ -60,6 +62,7 @@ internal static class TestComposition
             ai,
             handoff,
             protocol,
+            orchestration,
             NullLogger<ConversationService>.Instance);
 
         return (conversation, handoff, db);

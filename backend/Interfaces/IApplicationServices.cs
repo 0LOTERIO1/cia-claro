@@ -11,6 +11,7 @@ public interface IConversationService
     Task<SessionDto> GetSessionAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<SessionDto>> GetSessionsByCustomerAsync(string customerId, CancellationToken cancellationToken = default);
     Task<SessionDto> ChangeChannelAsync(Guid sessionId, ChannelType channel, CancellationToken cancellationToken = default);
+    Task<SessionDto> ChangeDepartmentAsync(Guid sessionId, DepartmentType department, string? reason, CancellationToken cancellationToken = default);
 }
 
 public interface IContextService
@@ -77,4 +78,28 @@ public interface IDashboardService
 public interface IProtocolService
 {
     Task<string> GenerateAsync(CancellationToken cancellationToken = default);
+}
+
+public class RoutingDecision
+{
+    public DepartmentType Current { get; set; }
+    public DepartmentType? Previous { get; set; }
+    public bool Transferred { get; set; }
+    public string? Reason { get; set; }
+    public DepartmentTransfer? Transfer { get; set; }
+}
+
+public interface IOrchestrationService
+{
+    Task<RoutingDecision> RouteAsync(
+        ConversationSession session,
+        IntentType intent,
+        ConversationContext context,
+        CancellationToken cancellationToken = default);
+
+    Task<RoutingDecision> ChangeDepartmentAsync(
+        ConversationSession session,
+        DepartmentType target,
+        string reason,
+        CancellationToken cancellationToken = default);
 }

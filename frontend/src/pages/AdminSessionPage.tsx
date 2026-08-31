@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { HandoffSummary } from '../components/HandoffSummary'
+import { JourneyTimeline } from '../components/JourneyTimeline'
 import { MessageBubble } from '../components/MessageBubble'
 import { apiClient, getErrorMessage } from '../services/api'
 import {
-  formatChannel,
   formatDateTime,
+  formatDepartment,
   formatIntent,
   formatIssue,
   formatStatus,
@@ -69,12 +70,12 @@ export function AdminSessionPage() {
                   <dd className="protocol">{detail.session.protocol}</dd>
                 </div>
                 <div>
-                  <dt>Canal inicial</dt>
-                  <dd>{formatChannel(detail.session.initialChannel)}</dd>
+                  <dt>Área atual</dt>
+                  <dd>{formatDepartment(detail.session.currentDepartment)}</dd>
                 </div>
                 <div>
-                  <dt>Canal atual</dt>
-                  <dd>{formatChannel(detail.session.currentChannel)}</dd>
+                  <dt>Área anterior</dt>
+                  <dd>{formatDepartment(detail.session.previousDepartment)}</dd>
                 </div>
                 <div>
                   <dt>Status</dt>
@@ -94,15 +95,31 @@ export function AdminSessionPage() {
               <h2>Contexto</h2>
               <dl>
                 <div>
-                  <dt>Problema</dt>
-                  <dd>{formatIssue(detail.context?.issueType)}</dd>
+                  <dt>Problema original</dt>
+                  <dd>{detail.context?.originalProblem ?? formatIssue(detail.context?.issueType)}</dd>
                 </div>
                 <div>
                   <dt>Modem reiniciado</dt>
                   <dd>{detail.context?.modemRestarted ? 'Sim' : 'Não'}</dd>
                 </div>
+                <div>
+                  <dt>Problema persistiu</dt>
+                  <dd>{detail.context?.internetStillDown ? 'Sim' : 'Não'}</dd>
+                </div>
+                <div>
+                  <dt>Pedido atual</dt>
+                  <dd>{detail.context?.currentRequest ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Resumo</dt>
+                  <dd>{detail.context?.contextSummary ?? '—'}</dd>
+                </div>
               </dl>
             </section>
+            <JourneyTimeline
+              current={detail.session.currentDepartment}
+              transfers={detail.transfers ?? detail.session.transfers ?? []}
+            />
             <HandoffSummary handoff={detail.handoff ?? null} />
           </aside>
           <main className="chat-window">

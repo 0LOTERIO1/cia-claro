@@ -1,4 +1,10 @@
 export type ChannelType = 'AppClaro' | 'WhatsApp'
+export type DepartmentType =
+  | 'Triage'
+  | 'TechnicalSupport'
+  | 'ModemReplacement'
+  | 'Financial'
+  | 'HumanAgent'
 export type SessionStatus = 'Active' | 'Resolved' | 'Transferred'
 export type MessageSender = 'Customer' | 'Assistant' | 'HumanAgent'
 export type IntentType =
@@ -8,6 +14,8 @@ export type IntentType =
   | 'ModemRestarted'
   | 'ContinueSupport'
   | 'HumanHandoff'
+  | 'ModemReplacement'
+  | 'BillingQuestion'
 export type IssueType = 'None' | 'InternetConnection'
 export type HandoffStatus = 'Pending' | 'Completed'
 
@@ -23,8 +31,23 @@ export interface ContextDto {
   sessionId: string
   issueType: IssueType
   modemRestarted: boolean
+  internetStillDown: boolean
+  originalProblem?: string | null
+  troubleshootingPerformed?: string | null
+  currentRequest?: string | null
+  importantFacts?: string | null
+  contextSummary?: string | null
   additionalData?: string | null
   updatedAt: string
+}
+
+export interface TransferDto {
+  id: string
+  sessionId: string
+  fromDepartment: DepartmentType
+  toDepartment: DepartmentType
+  reason: string
+  createdAt: string
 }
 
 export interface MessageDto {
@@ -43,12 +66,16 @@ export interface SessionDto {
   customerName: string
   initialChannel: ChannelType
   currentChannel: ChannelType
+  currentDepartment: DepartmentType
+  previousDepartment?: DepartmentType | null
   status: SessionStatus
   detectedIntent: IntentType
   createdAt: string
   updatedAt: string
   contextRestored: boolean
+  departmentChanged: boolean
   context?: ContextDto | null
+  transfers: TransferDto[]
 }
 
 export interface HandoffDto {
@@ -65,15 +92,25 @@ export interface SendMessageResponse {
   status: SessionStatus
   detectedIntent: IntentType
   currentChannel: ChannelType
+  currentDepartment: DepartmentType
+  previousDepartment?: DepartmentType | null
   contextRestored: boolean
+  departmentChanged: boolean
+  transferNotice?: string | null
   context?: ContextDto | null
   assistantMessage: MessageDto
   handoff?: HandoffDto | null
   messages: MessageDto[]
+  transfers: TransferDto[]
 }
 
 export interface ChannelCountDto {
   channel: ChannelType
+  count: number
+}
+
+export interface DepartmentCountDto {
+  department: DepartmentType
   count: number
 }
 
@@ -83,6 +120,7 @@ export interface DashboardDto {
   resolvedSessions: number
   transferredSessions: number
   sessionsByChannel: ChannelCountDto[]
+  sessionsByDepartment: DepartmentCountDto[]
 }
 
 export interface AdminSessionDetailDto {
@@ -91,4 +129,5 @@ export interface AdminSessionDetailDto {
   context?: ContextDto | null
   messages: MessageDto[]
   handoff?: HandoffDto | null
+  transfers: TransferDto[]
 }

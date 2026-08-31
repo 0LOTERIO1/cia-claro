@@ -9,6 +9,8 @@ public class ConversationSession
     public string CustomerId { get; set; } = string.Empty;
     public ChannelType InitialChannel { get; set; }
     public ChannelType CurrentChannel { get; set; }
+    public DepartmentType CurrentDepartment { get; set; } = DepartmentType.Triage;
+    public DepartmentType? PreviousDepartment { get; set; }
     public SessionStatus Status { get; set; } = SessionStatus.Active;
     public IntentType DetectedIntent { get; set; } = IntentType.Unknown;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -18,4 +20,5 @@ public class ConversationSession
     public ConversationContext? Context { get; set; }
     public ICollection<Message> Messages { get; set; } = new List<Message>();
     public ICollection<Handoff> Handoffs { get; set; } = new List<Handoff>();
+    public ICollection<DepartmentTransfer> Transfers { get; set; } = new List<DepartmentTransfer>();
 }

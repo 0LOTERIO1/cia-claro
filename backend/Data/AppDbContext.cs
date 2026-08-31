@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<ConversationContext> ConversationContexts => Set<ConversationContext>();
     public DbSet<Handoff> Handoffs => Set<Handoff>();
+    public DbSet<DepartmentTransfer> DepartmentTransfers => Set<DepartmentTransfer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,8 @@ public class AppDbContext : DbContext
             entity.Property(x => x.CustomerId).IsRequired().HasMaxLength(40);
             entity.Property(x => x.InitialChannel).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.CurrentChannel).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.CurrentDepartment).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.PreviousDepartment).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.DetectedIntent).HasConversion<string>().HasMaxLength(32);
             entity.HasIndex(x => new { x.CustomerId, x.Status });
@@ -66,6 +69,11 @@ public class AppDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.HasIndex(x => x.SessionId).IsUnique();
             entity.Property(x => x.IssueType).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.OriginalProblem).HasMaxLength(500);
+            entity.Property(x => x.TroubleshootingPerformed).HasMaxLength(1000);
+            entity.Property(x => x.CurrentRequest).HasMaxLength(500);
+            entity.Property(x => x.ImportantFacts).HasMaxLength(4000);
+            entity.Property(x => x.ContextSummary).HasMaxLength(2000);
             entity.Property(x => x.AdditionalData).HasMaxLength(4000);
 
             entity.HasOne(x => x.Session)
@@ -84,6 +92,21 @@ public class AppDbContext : DbContext
 
             entity.HasOne(x => x.Session)
                 .WithMany(x => x.Handoffs)
+                .HasForeignKey(x => x.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DepartmentTransfer>(entity =>
+        {
+            entity.ToTable("department_transfers");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.FromDepartment).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.ToDepartment).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.Reason).IsRequired().HasMaxLength(300);
+            entity.HasIndex(x => x.SessionId);
+
+            entity.HasOne(x => x.Session)
+                .WithMany(x => x.Transfers)
                 .HasForeignKey(x => x.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

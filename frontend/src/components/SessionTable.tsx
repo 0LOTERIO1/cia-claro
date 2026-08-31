@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import type { SessionDto } from '../types/api'
-import { formatChannel, formatDateTime, formatIntent, formatStatus } from '../services/labels'
+import { formatDateTime, formatDepartment, formatIntent, formatStatus } from '../services/labels'
 
 interface Props {
   sessions: SessionDto[]
@@ -20,7 +20,7 @@ export function SessionTable({ sessions }: Props) {
           <tr>
             <th>Protocolo</th>
             <th>Cliente</th>
-            <th>Canal</th>
+            <th>Área</th>
             <th>Intenção</th>
             <th>Status</th>
             <th>Última atualização</th>
@@ -31,7 +31,7 @@ export function SessionTable({ sessions }: Props) {
             <tr key={session.id} onClick={() => navigate(`/admin/sessions/${session.id}`)}>
               <td>{session.protocol}</td>
               <td>{session.customerName}</td>
-              <td>{formatChannel(session.currentChannel)}</td>
+              <td>{formatDepartment(session.currentDepartment)}</td>
               <td>{formatIntent(session.detectedIntent)}</td>
               <td>{formatStatus(session.status)}</td>
               <td>{formatDateTime(session.updatedAt)}</td>

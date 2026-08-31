@@ -70,6 +70,18 @@ public class SessionsController : ControllerBase
         return Ok(session);
     }
 
+    [HttpPost("{id:guid}/department")]
+    [ProducesResponseType(typeof(SessionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ChangeDepartment(
+        Guid id,
+        [FromBody] ChangeDepartmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var session = await _conversations.ChangeDepartmentAsync(id, request.Department, request.Reason, cancellationToken);
+        return Ok(session);
+    }
+
     [HttpPost("{id:guid}/handoff")]
     [ProducesResponseType(typeof(HandoffDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

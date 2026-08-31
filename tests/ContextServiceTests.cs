@@ -38,6 +38,7 @@ public class ContextServiceTests
 
         context = await service.UpdateFromIntentAsync(context, IntentType.ModemRestarted, "Já reiniciei o modem.");
         Assert.True(context.ModemRestarted);
+        Assert.True(context.InternetStillDown);
         Assert.Equal(IssueType.InternetConnection, db.ConversationContexts.Single().IssueType);
         Assert.True(db.ConversationContexts.Single().ModemRestarted);
     }

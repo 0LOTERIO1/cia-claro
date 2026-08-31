@@ -1,4 +1,5 @@
 using Cia.Api.DTOs;
+using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Exceptions;
 using Cia.Api.Interfaces;
@@ -37,6 +38,13 @@ public class DashboardService : IDashboardService
                     Channel = channel,
                     Count = sessions.Count(s => s.CurrentChannel == channel)
                 })
+                .ToList(),
+            SessionsByDepartment = Enum.GetValues<DepartmentType>()
+                .Select(department => new DepartmentCountDto
+                {
+                    Department = department,
+                    Count = sessions.Count(s => s.CurrentDepartment == department)
+                })
                 .ToList()
         };
     }
@@ -61,7 +69,11 @@ public class DashboardService : IDashboardService
             Customer = session.Customer.ToDto(),
             Context = session.Context?.ToDto(),
             Messages = messages.Select(m => m.ToDto()).ToList(),
-            Handoff = handoff?.ToDto()
+            Handoff = handoff?.ToDto(),
+            Transfers = (session.Transfers ?? Array.Empty<DepartmentTransfer>())
+                .OrderBy(t => t.CreatedAt)
+                .Select(t => t.ToDto())
+                .ToList()
         };
     }
 }

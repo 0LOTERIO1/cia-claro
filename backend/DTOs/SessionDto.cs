@@ -10,10 +10,14 @@ public class SessionDto
     public string CustomerName { get; set; } = string.Empty;
     public ChannelType InitialChannel { get; set; }
     public ChannelType CurrentChannel { get; set; }
+    public DepartmentType CurrentDepartment { get; set; }
+    public DepartmentType? PreviousDepartment { get; set; }
     public SessionStatus Status { get; set; }
     public IntentType DetectedIntent { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool ContextRestored { get; set; }
+    public bool DepartmentChanged { get; set; }
     public ContextDto? Context { get; set; }
+    public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
 }
