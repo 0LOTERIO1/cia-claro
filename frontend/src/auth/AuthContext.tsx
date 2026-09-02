@@ -1,5 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
-import { clearAuth, persistAuth, getStoredUser } from '../services/api'
+﻿import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { apiClient, clearAuth, persistAuth, getStoredUser } from '../services/api'
 import type { UserDto, UserRole } from '../types/api'
 
 interface AuthContextValue {
@@ -48,3 +48,4 @@ export function useAuth() {
   }
   return context
 }
+
