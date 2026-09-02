@@ -1,4 +1,5 @@
 using Cia.Api.Entities;
+using Cia.Api.Enums;
 
 namespace Cia.Api.DTOs;
 
@@ -29,6 +30,10 @@ public static class DtoMapper
         ContextRestored = contextRestored,
         DepartmentChanged = departmentChanged,
         Context = session.Context?.ToDto(),
+        HumanRequestStatus = session.HumanAgentRequests?
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => (HumanAgentRequestStatus?)r.Status)
+            .FirstOrDefault(),
         Transfers = (session.Transfers ?? Array.Empty<DepartmentTransfer>())
             .OrderBy(t => t.CreatedAt)
             .Select(t => t.ToDto())
@@ -78,5 +83,26 @@ public static class DtoMapper
         Summary = handoff.Summary,
         Status = handoff.Status,
         CreatedAt = handoff.CreatedAt
+    };
+
+    public static UserDto ToDto(this User user) => new()
+    {
+        Id = user.Id,
+        Name = user.Name,
+        Email = user.Email,
+        Role = user.Role,
+        CustomerId = user.CustomerId
+    };
+
+    public static HumanAgentRequestDto ToDto(this HumanAgentRequest request) => new()
+    {
+        Id = request.Id,
+        SessionId = request.SessionId,
+        Status = request.Status,
+        AssignedAgentId = request.AssignedAgentId,
+        AssignedAgentName = request.AssignedAgent?.Name,
+        CreatedAt = request.CreatedAt,
+        AssignedAt = request.AssignedAt,
+        FinishedAt = request.FinishedAt
     };
 }

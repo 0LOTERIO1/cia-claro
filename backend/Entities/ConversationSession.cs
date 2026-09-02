@@ -21,4 +21,5 @@ public class ConversationSession
     public ICollection<Message> Messages { get; set; } = new List<Message>();
     public ICollection<Handoff> Handoffs { get; set; } = new List<Handoff>();
     public ICollection<DepartmentTransfer> Transfers { get; set; } = new List<DepartmentTransfer>();
+    public ICollection<HumanAgentRequest> HumanAgentRequests { get; set; } = new List<HumanAgentRequest>();
 }

@@ -68,6 +68,13 @@ public class ConversationService : IConversationService
         _logger.LogInformation("Message received. SessionId={SessionId} Protocol={Protocol} Channel={Channel}",
             session.Id, session.Protocol, request.Channel);
 
+        if (session.Status is SessionStatus.WaitingForAgent or SessionStatus.Transferred)
+        {
+            session.UpdatedAt = DateTime.UtcNow;
+            await _sessions.SaveChangesAsync(cancellationToken);
+            return await BuildResponseAsync(session, context, restored: false, transferred: false, handoff: null, cancellationToken);
+        }
+
         var intent = _intentService.Detect(request.Content);
         session.DetectedIntent = intent;
         _logger.LogInformation("Intent detected. Protocol={Protocol} Intent={Intent}", session.Protocol, intent);
@@ -120,14 +127,35 @@ public class ConversationService : IConversationService
         if (intent == IntentType.HumanHandoff)
         {
             handoff = await _handoffService.CreateHandoffAsync(session.Id, cancellationToken);
-            session.Status = SessionStatus.Transferred;
         }
 
+        return await BuildResponseAsync(
+            session,
+            context,
+            contextRestored,
+            routing.Transferred,
+            handoff,
+            cancellationToken);
+    }
+
+    private async Task<SendMessageResponse> BuildResponseAsync(
+        ConversationSession session,
+        ConversationContext context,
+        bool restored,
+        bool transferred,
+        HandoffDto? handoff,
+        CancellationToken cancellationToken)
+    {
         var history = await _messages.GetBySessionIdAsync(session.Id, cancellationToken);
-        var transfers = session.Transfers.OrderBy(t => t.CreatedAt).Select(t => t.ToDto()).ToList();
-        var transferNotice = routing.Transferred
-            ? $"Seu contexto foi transferido para {DepartmentNames.Format(routing.Current)}."
-            : null;
+        var transfers = (session.Transfers ?? Array.Empty<DepartmentTransfer>())
+            .OrderBy(t => t.CreatedAt)
+            .Select(t => t.ToDto())
+            .ToList();
+        var transferNotice = session.Status == SessionStatus.WaitingForAgent
+            ? "Você entrou na fila de atendimento humano. Um funcionário da Claro assumirá este protocolo em instantes."
+            : transferred
+                ? $"Seu contexto foi transferido para {DepartmentNames.Format(session.CurrentDepartment)}."
+                : null;
 
         return new SendMessageResponse
         {
@@ -138,12 +166,13 @@ public class ConversationService : IConversationService
             CurrentChannel = session.CurrentChannel,
             CurrentDepartment = session.CurrentDepartment,
             PreviousDepartment = session.PreviousDepartment,
-            ContextRestored = contextRestored,
-            DepartmentChanged = routing.Transferred,
+            ContextRestored = restored,
+            DepartmentChanged = transferred,
             TransferNotice = transferNotice,
             Context = context.ToDto(),
-            AssistantMessage = assistantMessage.ToDto(),
+            AssistantMessage = history.LastOrDefault(m => m.Sender == MessageSender.Assistant)?.ToDto(),
             Handoff = handoff,
+            HumanAgentRequest = null,
             Messages = history.Select(m => m.ToDto()).ToList(),
             Transfers = transfers
         };
@@ -157,7 +186,7 @@ public class ConversationService : IConversationService
         }
 
         var customer = await GetCustomerAsync(request.CustomerId.Trim(), cancellationToken);
-        var existing = await _sessions.GetActiveByCustomerIdAsync(customer.Id, cancellationToken);
+        var existing = await _sessions.GetOpenByCustomerIdAsync(customer.Id, cancellationToken);
         if (existing is not null)
         {
             return existing.ToDto();
@@ -231,7 +260,7 @@ public class ConversationService : IConversationService
         ChannelType channel,
         CancellationToken cancellationToken)
     {
-        var active = await _sessions.GetActiveByCustomerIdAsync(customer.Id, cancellationToken);
+        var active = await _sessions.GetOpenByCustomerIdAsync(customer.Id, cancellationToken);
         if (active is not null)
         {
             return active;

@@ -4,6 +4,7 @@ import { CustomerInfo } from '../components/CustomerInfo'
 import { HandoffSummary } from '../components/HandoffSummary'
 import { JourneyTimeline } from '../components/JourneyTimeline'
 import { SessionInfo } from '../components/SessionInfo'
+import { useAuth } from '../auth/AuthContext'
 import { useChat } from '../hooks/useChat'
 import type { DepartmentType } from '../types/api'
 
@@ -14,7 +15,11 @@ const MANUAL_ROUTES: { department: DepartmentType; label: string; reason: string
 ]
 
 export function CustomerChatPage() {
-  const chat = useChat()
+  const { user, logout } = useAuth()
+  const chat = useChat(user?.customerId ?? null)
+  const waiting = chat.session?.status === 'WaitingForAgent'
+  const withAgent = chat.session?.status === 'Transferred'
+  const humanFlow = waiting || withAgent
 
   return (
     <div className="app-shell theme-app">
@@ -23,8 +28,11 @@ export function CustomerChatPage() {
           <p className="eyebrow">Contexto compartilhado entre áreas</p>
           <h1>CIA — Claro Inteligência Artificial</h1>
         </div>
-        <nav>
-          <Link to="/admin">Painel administrativo</Link>
+        <nav className="topbar-actions">
+          {user?.role === 'Admin' && <Link to="/admin">Painel administrativo</Link>}
+          <button type="button" className="text-btn" onClick={logout}>
+            Sair
+          </button>
         </nav>
       </header>
 
@@ -43,6 +51,13 @@ export function CustomerChatPage() {
         </div>
       )}
 
+      {waiting && (
+        <div className="banner info">Aguardando um funcionário da Claro assumir este protocolo.</div>
+      )}
+      {withAgent && (
+        <div className="banner info">Um atendente assumiu sua conversa. O histórico anterior foi mantido.</div>
+      )}
+
       <div className="layout">
         <aside>
           <CustomerInfo customer={chat.customer} />
@@ -57,7 +72,7 @@ export function CustomerChatPage() {
                   key={item.department}
                   type="button"
                   className="handoff-btn"
-                  disabled={!chat.session || chat.sending || chat.session.status === 'Transferred'}
+                  disabled={!chat.session || chat.sending || humanFlow}
                   onClick={() => void chat.changeDepartment(item.department, item.reason)}
                 >
                   {item.label}
@@ -68,12 +83,12 @@ export function CustomerChatPage() {
           <button
             type="button"
             className="handoff-btn"
-            disabled={!chat.session || chat.sending || chat.session.status === 'Transferred'}
+            disabled={!chat.session || chat.sending || humanFlow}
             onClick={() => void chat.requestHandoff()}
           >
             Falar com atendente
           </button>
-          {chat.session?.status === 'Transferred' && (
+          {chat.session?.status === 'Resolved' && (
             <button type="button" className="handoff-btn" onClick={chat.startNewAttendance}>
               Novo atendimento
             </button>
@@ -87,7 +102,7 @@ export function CustomerChatPage() {
             <ChatWindow
               messages={chat.messages}
               sending={chat.sending}
-              disabled={Boolean(chat.error && !chat.customer)}
+              disabled={Boolean(chat.error && !chat.customer) || chat.session?.status === 'Resolved'}
               status={chat.session?.status}
               onSend={chat.sendMessage}
             />

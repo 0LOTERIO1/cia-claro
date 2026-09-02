@@ -19,5 +19,6 @@ public class SessionDto
     public bool ContextRestored { get; set; }
     public bool DepartmentChanged { get; set; }
     public ContextDto? Context { get; set; }
+    public HumanAgentRequestStatus? HumanRequestStatus { get; set; }
     public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
 }

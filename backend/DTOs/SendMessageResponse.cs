@@ -15,8 +15,9 @@ public class SendMessageResponse
     public bool DepartmentChanged { get; set; }
     public string? TransferNotice { get; set; }
     public ContextDto? Context { get; set; }
-    public MessageDto AssistantMessage { get; set; } = null!;
+    public MessageDto? AssistantMessage { get; set; }
     public HandoffDto? Handoff { get; set; }
+    public HumanAgentRequestDto? HumanAgentRequest { get; set; }
     public IReadOnlyList<MessageDto> Messages { get; set; } = Array.Empty<MessageDto>();
     public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
 }

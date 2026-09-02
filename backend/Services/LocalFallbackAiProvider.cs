@@ -42,7 +42,7 @@ public class LocalFallbackAiProvider : IAiProvider
             IntentType.BillingQuestion => BuildFinancialResponse(context, session),
             IntentType.ContinueSupport => BuildContinueResponse(context, session),
             IntentType.HumanHandoff =>
-                "Vou encaminhar seu atendimento para um especialista com o resumo completo da jornada. Estou gerando o histórico do que já conversamos.",
+                "Vou colocar você na fila de atendimento humano com o histórico completo desta jornada. Um funcionário da Claro assumirá este protocolo em instantes.",
             _ => BuildDefaultResponse(context, session)
         };
 

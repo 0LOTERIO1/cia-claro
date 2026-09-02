@@ -37,6 +37,7 @@ public class ExceptionHandlingMiddleware
         var (status, message) = exception switch
         {
             ValidationAppException => (HttpStatusCode.BadRequest, exception.Message),
+            UnauthorizedAppException => (HttpStatusCode.Unauthorized, exception.Message),
             NotFoundException => (HttpStatusCode.NotFound, exception.Message),
             ConflictException => (HttpStatusCode.Conflict, exception.Message),
             _ => (HttpStatusCode.InternalServerError, "Ocorreu um erro interno. Tente novamente.")

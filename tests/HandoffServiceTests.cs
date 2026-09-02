@@ -10,7 +10,7 @@ public class HandoffServiceTests
     public async Task CreateHandoff_BuildsJourneySummary()
     {
         using var db = TestComposition.CreateDb();
-        var (conversation, handoff, _) = TestComposition.CreateServices(db);
+        var (conversation, handoff, _, _) = TestComposition.CreateServices(db);
 
         await conversation.SendMessageAsync(new SendMessageRequest
         {
@@ -36,7 +36,7 @@ public class HandoffServiceTests
         Assert.Contains("Triagem", result.Summary);
 
         var updated = await conversation.GetSessionAsync(session.Id);
-        Assert.Equal(SessionStatus.Transferred, updated.Status);
+        Assert.Equal(SessionStatus.WaitingForAgent, updated.Status);
         Assert.Equal(session.Protocol, updated.Protocol);
         Assert.Equal(DepartmentType.HumanAgent, updated.CurrentDepartment);
     }

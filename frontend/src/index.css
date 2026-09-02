@@ -54,20 +54,35 @@ button, input { font: inherit; }
 h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 2rem); }
 
 .topbar nav a,
+.topbar-actions a,
 .handoff-btn,
 .composer button,
 .channel-selector button,
-.banner button {
+.banner button,
+.text-btn {
   border: 0;
   border-radius: 999px;
   padding: 10px 16px;
   cursor: pointer;
 }
 
-.topbar nav a {
+.topbar nav a,
+.topbar-actions a {
   display: inline-block;
   background: var(--bg-soft);
   text-decoration: none;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.text-btn {
+  background: var(--bg-soft);
+  color: var(--text);
 }
 
 .layout {
@@ -174,6 +189,11 @@ dd { margin: 0; font-weight: 600; }
   align-self: flex-start;
   background: #2a3140;
 }
+.from-agent {
+  align-self: flex-start;
+  background: #1f3a36;
+  border: 1px solid rgba(61, 214, 140, 0.25);
+}
 .theme-whatsapp .from-customer { background: var(--whatsapp); }
 .theme-whatsapp .composer button { background: var(--whatsapp); }
 .theme-whatsapp {
@@ -229,8 +249,51 @@ tbody tr:hover { background: rgba(255,255,255,0.03); }
   border: 0;
 }
 
+.login-card { max-width: 520px; margin: 0 auto; }
+.login-form { display: grid; gap: 12px; }
+.login-form h2 { margin: 8px 0 0; }
+.login-form label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+.login-form input {
+  border: 1px solid var(--line);
+  background: #0f1218;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.login-form button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: var(--red);
+  color: white;
+  cursor: pointer;
+}
+.login-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+.profile-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.profile-tabs button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  color: var(--text);
+  cursor: pointer;
+}
+.profile-tabs .is-active { background: var(--red); }
+.agent-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+.queue-card {
+  background: var(--bg-soft);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.queue-card h3 { margin: 0 0 10px; }
+.context-facts { margin: 0 0 12px; padding-left: 18px; color: #d7dee8; }
+.assume-btn { background: var(--red); color: white; }
+
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
   .chat-window { min-height: 520px; }
   .topbar { align-items: flex-start; flex-direction: column; }
+  .agent-grid { grid-template-columns: 1fr; }
+  .profile-tabs { grid-template-columns: 1fr; }
 }

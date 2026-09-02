@@ -31,7 +31,8 @@ public class DashboardService : IDashboardService
             TotalSessions = sessions.Count,
             ActiveSessions = sessions.Count(s => s.Status == SessionStatus.Active),
             ResolvedSessions = sessions.Count(s => s.Status == SessionStatus.Resolved),
-            TransferredSessions = sessions.Count(s => s.Status == SessionStatus.Transferred),
+            TransferredSessions = sessions.Count(s =>
+                s.Status is SessionStatus.Transferred or SessionStatus.WaitingForAgent),
             SessionsByChannel = Enum.GetValues<ChannelType>()
                 .Select(channel => new ChannelCountDto
                 {

@@ -21,6 +21,7 @@ public class SessionRepository : ISessionRepository
             .Include(s => s.Customer)
             .Include(s => s.Context)
             .Include(s => s.Transfers)
+            .Include(s => s.HumanAgentRequests)
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
@@ -30,7 +31,26 @@ public class SessionRepository : ISessionRepository
             .Include(s => s.Customer)
             .Include(s => s.Context)
             .Include(s => s.Transfers)
+            .Include(s => s.HumanAgentRequests)
             .Where(s => s.CustomerId == customerId && s.Status == SessionStatus.Active)
+            .OrderByDescending(s => s.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public Task<ConversationSession?> GetOpenByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default)
+    {
+        return _db.ConversationSessions
+            .Include(s => s.Customer)
+            .Include(s => s.Context)
+            .Include(s => s.Transfers)
+            .Include(s => s.HumanAgentRequests)
+            .Where(s => s.CustomerId == customerId &&
+                        (s.Status == SessionStatus.Active ||
+                         s.Status == SessionStatus.WaitingForAgent ||
+                         (s.Status == SessionStatus.Transferred &&
+                          s.HumanAgentRequests.Any(r =>
+                              r.Status == HumanAgentRequestStatus.Waiting ||
+                              r.Status == HumanAgentRequestStatus.Assigned))))
             .OrderByDescending(s => s.UpdatedAt)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -41,6 +61,7 @@ public class SessionRepository : ISessionRepository
             .Include(s => s.Customer)
             .Include(s => s.Context)
             .Include(s => s.Transfers)
+            .Include(s => s.HumanAgentRequests)
             .Where(s => s.CustomerId == customerId)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(cancellationToken);
@@ -52,6 +73,7 @@ public class SessionRepository : ISessionRepository
             .Include(s => s.Customer)
             .Include(s => s.Context)
             .Include(s => s.Transfers)
+            .Include(s => s.HumanAgentRequests)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(cancellationToken);
     }

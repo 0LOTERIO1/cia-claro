@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using Cia.Api.Configuration;
 using Cia.Api.Data;
@@ -5,11 +6,15 @@ using Cia.Api.Interfaces;
 using Cia.Api.Middleware;
 using Cia.Api.Repositories;
 using Cia.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[]
@@ -64,7 +69,43 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1",
         Description = "API da CIA — Claro Inteligência Artificial"
     });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Informe o token JWT obtido em /api/auth/login."
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
+
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key))
+        };
+    });
+builder.Services.AddAuthorization();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não configurada.");
@@ -78,6 +119,8 @@ builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IContextRepository, ContextRepository>();
 builder.Services.AddScoped<IHandoffRepository, HandoffRepository>();
 builder.Services.AddScoped<ITransferRepository, TransferRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IHumanAgentRequestRepository, HumanAgentRequestRepository>();
 
 builder.Services.AddScoped<IIntentService, IntentService>();
 builder.Services.AddScoped<IContextService, ContextService>();
@@ -86,6 +129,8 @@ builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IHandoffService, HandoffService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IHumanAgentService, HumanAgentService>();
 builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<LocalFallbackAiProvider>();
 builder.Services.AddHttpClient<ExternalAiProvider>();
@@ -110,6 +155,8 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseCors("Frontend");
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())

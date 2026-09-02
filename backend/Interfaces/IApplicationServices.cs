@@ -68,6 +68,23 @@ public interface IHandoffService
     Task<HandoffDto> CreateHandoffAsync(Guid sessionId, CancellationToken cancellationToken = default);
 }
 
+public interface IAuthService
+{
+    Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<UserDto> GetMeAsync(Guid userId, CancellationToken cancellationToken = default);
+}
+
+public interface IHumanAgentService
+{
+    Task<IReadOnlyList<AgentQueueItemDto>> GetQueueAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AgentQueueItemDto>> GetAssignedAsync(Guid agentId, CancellationToken cancellationToken = default);
+    Task<AgentSessionDetailDto> GetDetailAsync(Guid requestId, CancellationToken cancellationToken = default);
+    Task<AgentSessionDetailDto> GetDetailBySessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+    Task<AgentSessionDetailDto> AssumeAsync(Guid requestId, Guid agentId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MessageDto>> SendMessageAsync(Guid sessionId, Guid agentId, string content, CancellationToken cancellationToken = default);
+    Task<AgentSessionDetailDto> FinishAsync(Guid requestId, Guid agentId, CancellationToken cancellationToken = default);
+}
+
 public interface IDashboardService
 {
     Task<DashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default);

@@ -37,7 +37,7 @@ export function AdminSessionPage() {
           <p className="eyebrow">Detalhe do atendimento</p>
           <h1>{detail?.session.protocol ?? 'Carregando...'}</h1>
         </div>
-        <nav>
+        <nav className="topbar-actions">
           <Link to="/admin">Voltar ao dashboard</Link>
         </nav>
       </header>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { MessageDto, SessionStatus } from '../types/api'
+import type { MessageDto, MessageSender, SessionStatus } from '../types/api'
 import { MessageBubble } from './MessageBubble'
 
 interface Props {
@@ -7,12 +7,27 @@ interface Props {
   sending: boolean
   disabled: boolean
   status?: SessionStatus
+  selfSender?: MessageSender
+  placeholder?: string
   onSend: (content: string) => Promise<void>
 }
 
-export function ChatWindow({ messages, sending, disabled, status, onSend }: Props) {
+function isHumanChat(status?: SessionStatus) {
+  return status === 'WaitingForAgent' || status === 'Transferred'
+}
+
+export function ChatWindow({
+  messages,
+  sending,
+  disabled,
+  status,
+  selfSender = 'Customer',
+  placeholder,
+  onSend,
+}: Props) {
   const [text, setText] = useState('')
   const endRef = useRef<HTMLDivElement>(null)
+  const locked = disabled || status === 'Resolved'
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -21,10 +36,20 @@ export function ChatWindow({ messages, sending, disabled, status, onSend }: Prop
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const value = text.trim()
-    if (!value) return
+    if (!value || locked) return
     setText('')
     await onSend(value)
   }
+
+  const inputPlaceholder =
+    placeholder ??
+    (status === 'WaitingForAgent'
+      ? 'Aguardando atendente. Você pode continuar escrevendo.'
+      : status === 'Transferred'
+        ? 'Converse com o atendente'
+        : status === 'Resolved'
+          ? 'Atendimento encerrado'
+          : 'Digite sua mensagem')
 
   return (
     <section className="chat-window">
@@ -33,9 +58,11 @@ export function ChatWindow({ messages, sending, disabled, status, onSend }: Prop
           <p className="empty">Envie uma mensagem para iniciar o atendimento com a CIA.</p>
         )}
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble key={message.id} message={message} selfSender={selfSender} />
         ))}
-        {sending && <div className="typing">CIA está processando...</div>}
+        {sending && !isHumanChat(status) && selfSender === 'Customer' && (
+          <div className="typing">CIA está processando...</div>
+        )}
         <div ref={endRef} />
       </div>
       <form className="composer" onSubmit={(event) => void submit(event)}>
@@ -46,10 +73,10 @@ export function ChatWindow({ messages, sending, disabled, status, onSend }: Prop
           id="message"
           value={text}
           onChange={(event) => setText(event.target.value)}
-          placeholder={status === 'Transferred' ? 'Atendimento transferido' : 'Digite sua mensagem'}
-          disabled={disabled || sending || status === 'Transferred'}
+          placeholder={inputPlaceholder}
+          disabled={locked || sending}
         />
-        <button type="submit" disabled={disabled || sending || !text.trim() || status === 'Transferred'}>
+        <button type="submit" disabled={locked || sending || !text.trim()}>
           {sending ? 'Enviando...' : 'Enviar'}
         </button>
       </form>

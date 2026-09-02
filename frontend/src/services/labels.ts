@@ -28,7 +28,9 @@ export function formatStatus(status: string): string {
     case 'Resolved':
       return 'Resolvido'
     case 'Transferred':
-      return 'Transferido'
+      return 'Com atendente'
+    case 'WaitingForAgent':
+      return 'Aguardando atendente'
     default:
       return status
   }

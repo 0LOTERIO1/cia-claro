@@ -4,5 +4,6 @@ public enum SessionStatus
 {
     Active = 1,
     Resolved = 2,
-    Transferred = 3
+    Transferred = 3,
+    WaitingForAgent = 4
 }

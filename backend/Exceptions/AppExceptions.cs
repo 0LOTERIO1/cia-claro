@@ -20,3 +20,10 @@ public class ValidationAppException : Exception
     {
     }
 }
+
+public class UnauthorizedAppException : Exception
+{
+    public UnauthorizedAppException(string message) : base(message)
+    {
+    }
+}

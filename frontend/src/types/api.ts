@@ -5,8 +5,10 @@ export type DepartmentType =
   | 'ModemReplacement'
   | 'Financial'
   | 'HumanAgent'
-export type SessionStatus = 'Active' | 'Resolved' | 'Transferred'
+export type SessionStatus = 'Active' | 'Resolved' | 'Transferred' | 'WaitingForAgent'
 export type MessageSender = 'Customer' | 'Assistant' | 'HumanAgent'
+export type UserRole = 'Customer' | 'Agent' | 'Admin'
+export type HumanAgentRequestStatus = 'Waiting' | 'Assigned' | 'Finished'
 export type IntentType =
   | 'Unknown'
   | 'Greeting'
@@ -75,6 +77,7 @@ export interface SessionDto {
   contextRestored: boolean
   departmentChanged: boolean
   context?: ContextDto | null
+  humanRequestStatus?: HumanAgentRequestStatus | null
   transfers: TransferDto[]
 }
 
@@ -98,8 +101,9 @@ export interface SendMessageResponse {
   departmentChanged: boolean
   transferNotice?: string | null
   context?: ContextDto | null
-  assistantMessage: MessageDto
+  assistantMessage?: MessageDto | null
   handoff?: HandoffDto | null
+  humanAgentRequest?: HumanAgentRequestDto | null
   messages: MessageDto[]
   transfers: TransferDto[]
 }
@@ -130,4 +134,51 @@ export interface AdminSessionDetailDto {
   messages: MessageDto[]
   handoff?: HandoffDto | null
   transfers: TransferDto[]
+}
+
+export interface UserDto {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  customerId?: string | null
+}
+
+export interface LoginResponse {
+  token: string
+  user: UserDto
+}
+
+export interface HumanAgentRequestDto {
+  id: string
+  sessionId: string
+  status: HumanAgentRequestStatus
+  assignedAgentId?: string | null
+  assignedAgentName?: string | null
+  createdAt: string
+  assignedAt?: string | null
+  finishedAt?: string | null
+}
+
+export interface AgentQueueItemDto {
+  requestId: string
+  sessionId: string
+  protocol: string
+  customerName: string
+  customerId: string
+  problem: string
+  contextFacts: string[]
+  contextSummary?: string | null
+  status: HumanAgentRequestStatus
+  createdAt: string
+}
+
+export interface AgentSessionDetailDto {
+  request: AgentQueueItemDto
+  session: SessionDto
+  customer: CustomerDto
+  context?: ContextDto | null
+  messages: MessageDto[]
+  transfers: TransferDto[]
+  handoff?: HandoffDto | null
 }

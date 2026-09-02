@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<ConversationContext> ConversationContexts => Set<ConversationContext>();
     public DbSet<Handoff> Handoffs => Set<Handoff>();
     public DbSet<DepartmentTransfer> DepartmentTransfers => Set<DepartmentTransfer>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<HumanAgentRequest> HumanAgentRequests => Set<HumanAgentRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,6 +111,42 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.Transfers)
                 .HasForeignKey(x => x.SessionId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("users");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Name).IsRequired().HasMaxLength(120);
+            entity.Property(x => x.Email).IsRequired().HasMaxLength(180);
+            entity.HasIndex(x => x.Email).IsUnique();
+            entity.Property(x => x.PasswordHash).IsRequired().HasMaxLength(500);
+            entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.CustomerId).HasMaxLength(40);
+
+            entity.HasOne(x => x.Customer)
+                .WithMany()
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<HumanAgentRequest>(entity =>
+        {
+            entity.ToTable("human_agent_requests");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.SessionId);
+
+            entity.HasOne(x => x.Session)
+                .WithMany(x => x.HumanAgentRequests)
+                .HasForeignKey(x => x.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.AssignedAgent)
+                .WithMany(x => x.AssignedRequests)
+                .HasForeignKey(x => x.AssignedAgentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
