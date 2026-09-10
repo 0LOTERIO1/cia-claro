@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type UIEvent } from 'react'
 import type { MessageDto, MessageSender, SessionStatus } from '../types/api'
 import { MessageBubble } from './MessageBubble'
 
@@ -16,6 +16,13 @@ function isHumanChat(status?: SessionStatus) {
   return status === 'WaitingForAgent' || status === 'Transferred'
 }
 
+const NEAR_BOTTOM_PX = 100
+
+function isNearBottom(element: HTMLElement) {
+  const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight
+  return distanceFromBottom < NEAR_BOTTOM_PX
+}
+
 export function ChatWindow({
   messages,
   sending,
@@ -26,17 +33,59 @@ export function ChatWindow({
   onSend,
 }: Props) {
   const [text, setText] = useState('')
-  const endRef = useRef<HTMLDivElement>(null)
+  const historyRef = useRef<HTMLDivElement>(null)
+  const nearBottomRef = useRef(true)
+  const lastMessageIdRef = useRef<string | undefined>(undefined)
+  const pendingOwnSendRef = useRef(false)
   const locked = disabled || status === 'Resolved'
 
+  const scrollHistoryToBottom = (smooth = true) => {
+    const element = historyRef.current
+    if (!element) return
+    element.scrollTo({
+      top: element.scrollHeight,
+      behavior: smooth ? 'smooth' : 'auto',
+    })
+    nearBottomRef.current = true
+  }
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, sending])
+    const lastId = messages.at(-1)?.id
+    const hasNewMessage = lastId !== lastMessageIdRef.current
+    const ownSend = pendingOwnSendRef.current
+
+    if (ownSend) {
+      pendingOwnSendRef.current = false
+      lastMessageIdRef.current = lastId
+      scrollHistoryToBottom()
+      return
+    }
+
+    if (!hasNewMessage) {
+      return
+    }
+
+    lastMessageIdRef.current = lastId
+
+    const element = historyRef.current
+    if (element && isNearBottom(element)) {
+      nearBottomRef.current = true
+    }
+
+    if (nearBottomRef.current) {
+      scrollHistoryToBottom()
+    }
+  }, [messages])
+
+  const handleHistoryScroll = (event: UIEvent<HTMLDivElement>) => {
+    nearBottomRef.current = isNearBottom(event.currentTarget)
+  }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const value = text.trim()
     if (!value || locked) return
+    pendingOwnSendRef.current = true
     setText('')
     await onSend(value)
   }
@@ -53,7 +102,13 @@ export function ChatWindow({
 
   return (
     <section className="chat-window">
-      <div className="chat-history" role="log" aria-live="polite">
+      <div
+        ref={historyRef}
+        className="chat-history"
+        role="log"
+        aria-live="polite"
+        onScroll={handleHistoryScroll}
+      >
         {messages.length === 0 && (
           <p className="empty">Envie uma mensagem para iniciar o atendimento com a CIA.</p>
         )}
@@ -63,7 +118,6 @@ export function ChatWindow({
         {sending && !isHumanChat(status) && selfSender === 'Customer' && (
           <div className="typing">CIA está processando...</div>
         )}
-        <div ref={endRef} />
       </div>
       <form className="composer" onSubmit={(event) => void submit(event)}>
         <label className="sr-only" htmlFor="message">

@@ -147,7 +147,15 @@ dd { margin: 0; font-weight: 600; }
 .journey .is-current { color: #ffd0cc; font-weight: 700; }
 
 .chat-window { min-height: 620px; display: flex; flex-direction: column; overflow: hidden; }
-.chat-history { flex: 1; padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.chat-history {
+  flex: 1;
+  padding: 18px;
+  overflow-y: auto;
+  overflow-anchor: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .composer {
   display: flex;
   gap: 8px;

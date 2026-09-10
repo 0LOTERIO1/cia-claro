@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AgentChat } from '../components/AgentChat'
 import { useAuth } from '../auth/AuthContext'
 import { apiClient, getErrorMessage } from '../services/api'
+import { sameMessageSnapshot } from '../services/messages'
 import type { AgentSessionDetailDto } from '../types/api'
 
 export function AgentChatPage() {
@@ -16,7 +17,18 @@ export function AgentChatPage() {
   const load = useCallback(async () => {
     if (!id) return
     try {
-      setDetail(await apiClient.getAgentRequest(id))
+      const next = await apiClient.getAgentRequest(id)
+      setDetail((current) => {
+        if (
+          current &&
+          current.request.status === next.request.status &&
+          current.session.status === next.session.status &&
+          sameMessageSnapshot(current.messages, next.messages)
+        ) {
+          return current
+        }
+        return next
+      })
       setError(null)
     } catch (err) {
       setError(getErrorMessage(err))

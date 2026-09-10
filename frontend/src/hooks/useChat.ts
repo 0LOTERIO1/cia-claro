@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { apiClient, getErrorMessage } from '../services/api'
+import { sameMessageSnapshot } from '../services/messages'
 import type {
   CustomerDto,
   DepartmentType,
@@ -76,8 +77,19 @@ export function useChat(customerId: string | null) {
           apiClient.getMessages(session.id),
           apiClient.getSession(session.id),
         ])
-        setMessages(history)
-        setSession(updated)
+        setMessages((current) => (sameMessageSnapshot(current, history) ? current : history))
+        setSession((current) => {
+          if (
+            current &&
+            current.status === updated.status &&
+            current.currentDepartment === updated.currentDepartment &&
+            current.updatedAt === updated.updatedAt &&
+            current.humanRequestStatus === updated.humanRequestStatus
+          ) {
+            return current
+          }
+          return updated
+        })
         setTransfers(updated.transfers ?? [])
       } catch {
         // Mantém a tela utilizável se um ciclo de polling falhar.
