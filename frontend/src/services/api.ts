@@ -1,8 +1,10 @@
 import axios, { isAxiosError } from 'axios'
 import type {
+  ActiveSessionResponse,
   AdminSessionDetailDto,
   AgentQueueItemDto,
   AgentSessionDetailDto,
+  CustomerChannelDto,
   CustomerDto,
   DashboardDto,
   DepartmentType,
@@ -11,6 +13,7 @@ import type {
   MessageDto,
   SendMessageResponse,
   SessionDto,
+  TelegramLinkCodeDto,
   UserDto,
 } from '../types/api'
 
@@ -96,9 +99,29 @@ export const apiClient = {
   sendMessage: async (customerId: string, content: string) => {
     const { data } = await api.post<SendMessageResponse>('/api/chat/message', {
       customerId,
-      channel: 'AppClaro',
+      channel: 'WebPortal',
       content,
     })
+    return data
+  },
+  getCustomerChannels: async () => {
+    const { data } = await api.get<CustomerChannelDto[]>('/api/customer/channels')
+    return data
+  },
+  createTelegramLinkCode: async () => {
+    const { data } = await api.post<TelegramLinkCodeDto>('/api/customer/channels/telegram/link-code')
+    return data
+  },
+  getActiveSession: async () => {
+    const { data } = await api.get<ActiveSessionResponse>('/api/customer/active-session')
+    return data
+  },
+  resumeActiveSession: async () => {
+    const { data } = await api.post<ActiveSessionResponse>('/api/customer/active-session/resume')
+    return data
+  },
+  sendCustomerMessage: async (content: string) => {
+    const { data } = await api.post<SendMessageResponse>('/api/customer/messages', { content })
     return data
   },
   changeDepartment: async (sessionId: string, department: DepartmentType, reason: string) => {

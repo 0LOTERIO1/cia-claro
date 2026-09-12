@@ -28,6 +28,8 @@ public static class DbSeeder
             await db.SaveChangesAsync(cancellationToken);
         }
 
+        await BackfillTelegramIdentitiesAsync(db, cancellationToken);
+
         if (await db.Users.AnyAsync(cancellationToken))
         {
             return;
@@ -65,5 +67,40 @@ public static class DbSeeder
             });
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task BackfillTelegramIdentitiesAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var customers = await db.Customers
+            .Where(c => c.TelegramUserId != null)
+            .ToListAsync(cancellationToken);
+
+        foreach (var customer in customers)
+        {
+            var externalUserId = customer.TelegramUserId!.Value.ToString();
+            var exists = await db.CustomerChannelIdentities.AnyAsync(
+                x => x.Channel == ChannelType.Telegram && x.ExternalUserId == externalUserId,
+                cancellationToken);
+            if (exists)
+            {
+                continue;
+            }
+
+            db.CustomerChannelIdentities.Add(new CustomerChannelIdentity
+            {
+                Id = Guid.NewGuid(),
+                CustomerId = customer.Id,
+                Channel = ChannelType.Telegram,
+                ExternalUserId = externalUserId,
+                ExternalChatId = customer.TelegramChatId?.ToString(),
+                DisplayName = customer.Name,
+                CreatedAt = customer.CreatedAt
+            });
+        }
+
+        if (db.ChangeTracker.HasChanges())
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 }

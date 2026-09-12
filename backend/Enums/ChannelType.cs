@@ -4,5 +4,6 @@ public enum ChannelType
 {
     AppClaro = 1,
     WhatsApp = 2,
-    Telegram = 3
+    Telegram = 3,
+    WebPortal = 4
 }

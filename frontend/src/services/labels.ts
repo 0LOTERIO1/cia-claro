@@ -3,6 +3,7 @@ export const DEMO_CUSTOMER_ID = 'CLIENTE-001'
 export function formatChannel(channel: string): string {
   if (channel === 'WhatsApp') return 'WhatsApp'
   if (channel === 'Telegram') return 'Telegram'
+  if (channel === 'WebPortal') return 'Portal CIA'
   return 'App Claro'
 }
 

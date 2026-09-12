@@ -2,7 +2,7 @@ import { ChatWindow } from './ChatWindow'
 import { HandoffSummary } from './HandoffSummary'
 import { JourneyTimeline } from './JourneyTimeline'
 import type { AgentSessionDetailDto } from '../types/api'
-import { formatDepartment, formatIssue, formatStatus } from '../services/labels'
+import { formatChannel, formatDepartment, formatIssue, formatStatus } from '../services/labels'
 
 interface Props {
   detail: AgentSessionDetailDto
@@ -27,6 +27,10 @@ export function AgentChat({ detail, sending, onSend, onFinish }: Props) {
             <div>
               <dt>Protocolo</dt>
               <dd className="protocol">{detail.session.protocol}</dd>
+            </div>
+            <div>
+              <dt>Canal atual</dt>
+              <dd>{formatChannel(detail.session.currentChannel)}</dd>
             </div>
             <div>
               <dt>Área atual</dt>

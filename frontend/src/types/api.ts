@@ -1,4 +1,4 @@
-export type ChannelType = 'AppClaro' | 'WhatsApp' | 'Telegram'
+export type ChannelType = 'AppClaro' | 'WhatsApp' | 'Telegram' | 'WebPortal'
 export type DepartmentType =
   | 'Triage'
   | 'TechnicalSupport'
@@ -127,6 +127,26 @@ export interface DashboardDto {
   sessionsByDepartment: DepartmentCountDto[]
 }
 
+export interface CustomerChannelDto {
+  channel: ChannelType
+  connected: boolean
+  displayName?: string | null
+  verifiedAt?: string | null
+}
+
+export interface TelegramLinkCodeDto {
+  code: string
+  command: string
+  expiresAt: string
+  expiresInMinutes: number
+}
+
+export interface ActiveSessionResponse {
+  session?: SessionDto | null
+  messages: MessageDto[]
+  channels: CustomerChannelDto[]
+}
+
 export interface AdminSessionDetailDto {
   session: SessionDto
   customer: CustomerDto
@@ -134,6 +154,7 @@ export interface AdminSessionDetailDto {
   messages: MessageDto[]
   handoff?: HandoffDto | null
   transfers: TransferDto[]
+  linkedChannels: CustomerChannelDto[]
 }
 
 export interface UserDto {

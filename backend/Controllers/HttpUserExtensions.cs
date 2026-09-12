@@ -11,4 +11,15 @@ public static class HttpUserExtensions
 
         return Guid.TryParse(value, out var id) ? id : Guid.Empty;
     }
+
+    public static string GetCustomerId(this ClaimsPrincipal user)
+    {
+        var value = user.FindFirstValue("customerId");
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new Cia.Api.Exceptions.UnauthorizedAppException("Conta de cliente não associada a este usuário.");
+        }
+
+        return value;
+    }
 }

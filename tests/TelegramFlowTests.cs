@@ -134,11 +134,7 @@ public class TelegramFlowTests
         ConversationService conversation,
         ITelegramService telegram)
     {
-        return new TelegramInboundService(
-            new Cia.Api.Repositories.CustomerRepository(db),
-            conversation,
-            telegram,
-            NullLogger<TelegramInboundService>.Instance);
+        return TestComposition.CreateTelegramInbound(db, conversation, telegram);
     }
 
     private static TelegramWebhookController CreateController(string secret, ITelegramInboundService inbound)

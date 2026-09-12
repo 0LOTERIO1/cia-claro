@@ -10,6 +10,7 @@ import {
   formatIntent,
   formatIssue,
   formatStatus,
+  formatChannel,
 } from '../services/labels'
 import type { AdminSessionDetailDto } from '../types/api'
 
@@ -63,11 +64,34 @@ export function AdminSessionPage() {
               </dl>
             </section>
             <section className="panel">
+              <h2>Canais vinculados</h2>
+              {(detail.linkedChannels?.length ?? 0) === 0 ? (
+                <p className="hint">Nenhum canal vinculado.</p>
+              ) : (
+                <ul className="channel-list">
+                  {detail.linkedChannels.map((channel) => (
+                    <li key={channel.channel}>
+                      {formatChannel(channel.channel)}
+                      {channel.displayName ? ` · ${channel.displayName}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+            <section className="panel">
               <h2>Sessão</h2>
               <dl>
                 <div>
                   <dt>Protocolo</dt>
                   <dd className="protocol">{detail.session.protocol}</dd>
+                </div>
+                <div>
+                  <dt>Canal de origem</dt>
+                  <dd>{formatChannel(detail.session.initialChannel)}</dd>
+                </div>
+                <div>
+                  <dt>Canal atual</dt>
+                  <dd>{formatChannel(detail.session.currentChannel)}</dd>
                 </div>
                 <div>
                   <dt>Área atual</dt>

@@ -1,6 +1,6 @@
 using Cia.Api.DTOs;
-using Cia.Api.Entities;
 using Cia.Api.Enums;
+using Cia.Api.Exceptions;
 using Cia.Api.Interfaces;
 
 namespace Cia.Api.Services;
@@ -9,20 +9,20 @@ public class TelegramInboundService : ITelegramInboundService
 {
     public const int MaxMessageLength = 2000;
 
-    private readonly ICustomerRepository _customers;
     private readonly IConversationService _conversations;
     private readonly ITelegramService _telegram;
+    private readonly IChannelIdentityService _identities;
     private readonly ILogger<TelegramInboundService> _logger;
 
     public TelegramInboundService(
-        ICustomerRepository customers,
         IConversationService conversations,
         ITelegramService telegram,
+        IChannelIdentityService identities,
         ILogger<TelegramInboundService> logger)
     {
-        _customers = customers;
         _conversations = conversations;
         _telegram = telegram;
+        _identities = identities;
         _logger = logger;
     }
 
@@ -49,7 +49,17 @@ public class TelegramInboundService : ITelegramInboundService
             "Telegram update received. UpdateId={UpdateId} ChatId={ChatId} UserId={UserId} Username={Username}",
             update.UpdateId, telegramChatId, telegramUserId, username);
 
-        var customer = await GetOrCreateCustomerAsync(telegramUserId, telegramChatId, firstName, cancellationToken);
+        if (TryParseLinkCommand(messageText, out var linkCode))
+        {
+            await HandleLinkCommandAsync(linkCode, telegramUserId, telegramChatId, firstName, cancellationToken);
+            return;
+        }
+
+        var customer = await _identities.GetOrCreateTelegramCustomerAsync(
+            telegramUserId,
+            telegramChatId,
+            firstName,
+            cancellationToken);
         _logger.LogInformation(
             "Telegram customer identified. CustomerId={CustomerId} Name={Name}",
             customer.Id, customer.Name);
@@ -68,71 +78,61 @@ public class TelegramInboundService : ITelegramInboundService
             response.Protocol, response.Status, response.DetectedIntent);
 
         var last = response.Messages.LastOrDefault();
-        if (last is { Sender: MessageSender.Assistant })
+        if (last is { Sender: MessageSender.Assistant } && response.CurrentChannel == ChannelType.Telegram)
         {
             await _telegram.SendMessageAsync(telegramChatId, last.Content, cancellationToken);
         }
     }
 
-    private async Task<Customer> GetOrCreateCustomerAsync(
+    private async Task HandleLinkCommandAsync(
+        string code,
         long telegramUserId,
         long telegramChatId,
         string? firstName,
         CancellationToken cancellationToken)
     {
-        var existing = await _customers.GetByTelegramUserIdAsync(telegramUserId, cancellationToken);
-        if (existing is not null)
+        try
         {
-            var name = ResolveName(firstName, telegramUserId);
-            var changed = false;
-            if (!string.Equals(existing.Name, name, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(firstName))
-            {
-                existing.Name = name;
-                changed = true;
-            }
-
-            if (existing.TelegramChatId != telegramChatId)
-            {
-                existing.TelegramChatId = telegramChatId;
-                changed = true;
-            }
-
-            if (changed)
-            {
-                await _customers.SaveChangesAsync(cancellationToken);
-            }
-
-            return existing;
+            var confirmation = await _identities.RedeemTelegramLinkAsync(
+                code,
+                telegramUserId,
+                telegramChatId,
+                firstName,
+                cancellationToken);
+            await _telegram.SendMessageAsync(telegramChatId, confirmation, cancellationToken);
         }
-
-        var customer = new Customer
+        catch (Exception ex) when (ex is ValidationAppException or ConflictException or NotFoundException)
         {
-            Id = $"TG-{telegramUserId}",
-            Name = ResolveName(firstName, telegramUserId),
-            Phone = TruncatePhone(telegramUserId.ToString()),
-            TelegramUserId = telegramUserId,
-            TelegramChatId = telegramChatId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await _customers.AddAsync(customer, cancellationToken);
-        await _customers.SaveChangesAsync(cancellationToken);
-        return customer;
+            _logger.LogWarning(
+                "Telegram link command rejected. UserId={UserId} Reason={Reason}",
+                telegramUserId, ex.Message);
+            await _telegram.SendMessageAsync(telegramChatId, ex.Message, cancellationToken);
+        }
     }
 
-    private static string ResolveName(string? firstName, long telegramUserId)
+    public static bool TryParseLinkCommand(string text, out string code)
     {
-        return string.IsNullOrWhiteSpace(firstName) ? $"Cliente {telegramUserId}" : firstName.Trim();
+        code = string.Empty;
+        var value = text.Trim();
+        if (!value.StartsWith("/link", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var rest = value[5..].Trim();
+        if (rest.StartsWith('@'))
+        {
+            var space = rest.IndexOf(' ');
+            rest = space < 0 ? string.Empty : rest[(space + 1)..].Trim();
+        }
+
+        code = rest;
+        return true;
     }
 
     private static string Truncate(string text)
     {
         var value = text.Trim();
         return value.Length <= MaxMessageLength ? value : value[..MaxMessageLength];
-    }
-
-    private static string TruncatePhone(string value)
-    {
-        return value.Length <= 20 ? value : value[..20];
     }
 }

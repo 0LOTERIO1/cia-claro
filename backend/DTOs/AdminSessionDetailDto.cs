@@ -8,4 +8,5 @@ public class AdminSessionDetailDto
     public IReadOnlyList<MessageDto> Messages { get; set; } = Array.Empty<MessageDto>();
     public HandoffDto? Handoff { get; set; }
     public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
+    public IReadOnlyList<CustomerChannelDto> LinkedChannels { get; set; } = Array.Empty<CustomerChannelDto>();
 }

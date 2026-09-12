@@ -11,15 +11,18 @@ public class DashboardService : IDashboardService
     private readonly ISessionRepository _sessions;
     private readonly IMessageRepository _messages;
     private readonly IHandoffRepository _handoffs;
+    private readonly IChannelIdentityRepository _identities;
 
     public DashboardService(
         ISessionRepository sessions,
         IMessageRepository messages,
-        IHandoffRepository handoffs)
+        IHandoffRepository handoffs,
+        IChannelIdentityRepository identities)
     {
         _sessions = sessions;
         _messages = messages;
         _handoffs = handoffs;
+        _identities = identities;
     }
 
     public async Task<DashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
@@ -63,6 +66,7 @@ public class DashboardService : IDashboardService
 
         var messages = await _messages.GetBySessionIdAsync(id, cancellationToken);
         var handoff = await _handoffs.GetLatestBySessionIdAsync(id, cancellationToken);
+        var identities = await _identities.GetByCustomerIdAsync(session.CustomerId, cancellationToken);
 
         return new AdminSessionDetailDto
         {
@@ -74,7 +78,14 @@ public class DashboardService : IDashboardService
             Transfers = (session.Transfers ?? Array.Empty<DepartmentTransfer>())
                 .OrderBy(t => t.CreatedAt)
                 .Select(t => t.ToDto())
-                .ToList()
+                .ToList(),
+            LinkedChannels = identities.Select(identity => new CustomerChannelDto
+            {
+                Channel = identity.Channel,
+                Connected = true,
+                DisplayName = identity.DisplayName,
+                VerifiedAt = identity.VerifiedAt ?? identity.CreatedAt
+            }).ToList()
         };
     }
 }

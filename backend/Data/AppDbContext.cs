@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<DepartmentTransfer> DepartmentTransfers => Set<DepartmentTransfer>();
     public DbSet<User> Users => Set<User>();
     public DbSet<HumanAgentRequest> HumanAgentRequests => Set<HumanAgentRequest>();
+    public DbSet<CustomerChannelIdentity> CustomerChannelIdentities => Set<CustomerChannelIdentity>();
+    public DbSet<ChannelLinkCode> ChannelLinkCodes => Set<ChannelLinkCode>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -152,6 +154,40 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.AssignedRequests)
                 .HasForeignKey(x => x.AssignedAgentId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CustomerChannelIdentity>(entity =>
+        {
+            entity.ToTable("customer_channel_identities");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CustomerId).IsRequired().HasMaxLength(40);
+            entity.Property(x => x.Channel).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.ExternalUserId).IsRequired().HasMaxLength(64);
+            entity.Property(x => x.ExternalChatId).HasMaxLength(64);
+            entity.Property(x => x.DisplayName).HasMaxLength(120);
+            entity.HasIndex(x => new { x.Channel, x.ExternalUserId }).IsUnique();
+            entity.HasIndex(x => x.CustomerId);
+
+            entity.HasOne(x => x.Customer)
+                .WithMany(x => x.ChannelIdentities)
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ChannelLinkCode>(entity =>
+        {
+            entity.ToTable("channel_link_codes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CustomerId).IsRequired().HasMaxLength(40);
+            entity.Property(x => x.Channel).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.CodeHash).IsRequired().HasMaxLength(64);
+            entity.HasIndex(x => x.CodeHash);
+            entity.HasIndex(x => new { x.CustomerId, x.Channel });
+
+            entity.HasOne(x => x.Customer)
+                .WithMany(x => x.LinkCodes)
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

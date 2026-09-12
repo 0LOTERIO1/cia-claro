@@ -1,18 +1,9 @@
-import { Link } from 'react-router-dom'
 import { ChatWindow } from '../components/ChatWindow'
-import { CustomerInfo } from '../components/CustomerInfo'
 import { HandoffSummary } from '../components/HandoffSummary'
 import { JourneyTimeline } from '../components/JourneyTimeline'
-import { SessionInfo } from '../components/SessionInfo'
 import { useAuth } from '../auth/AuthContext'
 import { useChat } from '../hooks/useChat'
-import type { DepartmentType } from '../types/api'
-
-const MANUAL_ROUTES: { department: DepartmentType; label: string; reason: string }[] = [
-  { department: 'TechnicalSupport', label: 'Encaminhar para Técnico', reason: 'Transferência manual para Suporte Técnico' },
-  { department: 'ModemReplacement', label: 'Encaminhar para Troca de Modem', reason: 'Transferência manual para Troca de Modem' },
-  { department: 'Financial', label: 'Encaminhar para Financeiro', reason: 'Transferência manual para Financeiro' },
-]
+import { formatChannel, formatDateTime, formatDepartment, formatStatus } from '../services/labels'
 
 export function CustomerChatPage() {
   const { user, logout } = useAuth()
@@ -20,16 +11,21 @@ export function CustomerChatPage() {
   const waiting = chat.session?.status === 'WaitingForAgent'
   const withAgent = chat.session?.status === 'Transferred'
   const humanFlow = waiting || withAgent
+  const telegramConnected = Boolean(chat.telegram?.connected)
+  const pendingTelegramSession =
+    Boolean(chat.session) &&
+    !chat.resumed &&
+    chat.session?.initialChannel === 'Telegram' &&
+    chat.session?.currentChannel !== 'WebPortal'
 
   return (
     <div className="app-shell theme-app">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Contexto compartilhado entre áreas</p>
-          <h1>CIA — Claro Inteligência Artificial</h1>
+          <p className="eyebrow">Portal do cliente</p>
+          <h1>Olá, {user?.name ?? chat.customer?.name ?? 'cliente'}</h1>
         </div>
         <nav className="topbar-actions">
-          {user?.role === 'Admin' && <Link to="/admin">Painel administrativo</Link>}
           <button type="button" className="text-btn" onClick={logout}>
             Sair
           </button>
@@ -60,34 +56,94 @@ export function CustomerChatPage() {
 
       <div className="layout">
         <aside>
-          <CustomerInfo customer={chat.customer} />
-          <SessionInfo session={chat.session} />
-          <JourneyTimeline current={chat.session?.currentDepartment} transfers={chat.transfers} />
           <section className="panel">
-            <h2>Demonstração</h2>
-            <p className="hint">O roteamento ocorre pelas mensagens. Use os botões só se precisar forçar uma área.</p>
-            <div className="demo-actions">
-              {MANUAL_ROUTES.map((item) => (
+            <h2>Canais conectados</h2>
+            <div className="channel-status">
+              <div>
+                <strong>Telegram</strong>
+                <p className={telegramConnected ? 'ok' : 'hint'}>
+                  {telegramConnected ? 'Telegram conectado ✓' : 'Não conectado'}
+                </p>
+                {telegramConnected && chat.telegram?.displayName && (
+                  <p className="hint">Nome visível: {chat.telegram.displayName}</p>
+                )}
+              </div>
+              {!telegramConnected && !chat.linkCode && (
                 <button
-                  key={item.department}
                   type="button"
                   className="handoff-btn"
-                  disabled={!chat.session || chat.sending || humanFlow}
-                  onClick={() => void chat.changeDepartment(item.department, item.reason)}
+                  disabled={chat.linking}
+                  onClick={() => void chat.connectTelegram()}
                 >
-                  {item.label}
+                  {chat.linking ? 'Gerando código...' : 'Conectar Telegram'}
                 </button>
-              ))}
+              )}
+              {chat.linkCode && !telegramConnected && (
+                <div className="link-box">
+                  <p>Abra o bot da CIA no Telegram e envie:</p>
+                  <code>{chat.linkCode.command}</code>
+                  <p className="hint">Este código expira em {chat.linkCode.expiresInMinutes} minutos.</p>
+                </div>
+              )}
             </div>
           </section>
-          <button
-            type="button"
-            className="handoff-btn"
-            disabled={!chat.session || chat.sending || humanFlow}
-            onClick={() => void chat.requestHandoff()}
-          >
-            Falar com atendente
-          </button>
+
+          {chat.session && (
+            <section className="panel">
+              <h2>Atendimento em andamento</h2>
+              <p className="hint">Você possui um atendimento em andamento.</p>
+              <dl>
+                <div>
+                  <dt>Protocolo</dt>
+                  <dd className="protocol">{chat.session.protocol}</dd>
+                </div>
+                <div>
+                  <dt>Iniciado via</dt>
+                  <dd>{formatChannel(chat.session.initialChannel)}</dd>
+                </div>
+                <div>
+                  <dt>Canal atual</dt>
+                  <dd>{formatChannel(chat.session.currentChannel)}</dd>
+                </div>
+                <div>
+                  <dt>Área atual</dt>
+                  <dd>{formatDepartment(chat.session.currentDepartment)}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{formatStatus(chat.session.status)}</dd>
+                </div>
+                <div>
+                  <dt>Última atualização</dt>
+                  <dd>{formatDateTime(chat.session.updatedAt)}</dd>
+                </div>
+              </dl>
+              {pendingTelegramSession && (
+                <button
+                  type="button"
+                  className="handoff-btn"
+                  disabled={chat.sending}
+                  onClick={() => void chat.continueAttendance()}
+                >
+                  Continuar atendimento
+                </button>
+              )}
+            </section>
+          )}
+
+          {chat.resumed && (
+            <JourneyTimeline current={chat.session?.currentDepartment} transfers={chat.transfers} />
+          )}
+          {chat.resumed && !humanFlow && chat.session?.status !== 'Resolved' && (
+            <button
+              type="button"
+              className="handoff-btn"
+              disabled={!chat.session || chat.sending}
+              onClick={() => void chat.requestHandoff()}
+            >
+              Falar com atendente
+            </button>
+          )}
           {chat.session?.status === 'Resolved' && (
             <button type="button" className="handoff-btn" onClick={chat.startNewAttendance}>
               Novo atendimento
@@ -98,6 +154,17 @@ export function CustomerChatPage() {
         <main>
           {chat.loading ? (
             <p className="empty">Carregando atendimento...</p>
+          ) : pendingTelegramSession ? (
+            <section className="panel resume-panel">
+              <h2>Continuar no Portal CIA</h2>
+              <p>
+                Encontramos o atendimento iniciado no Telegram. O protocolo, o histórico e o contexto serão
+                mantidos. Nenhuma nova sessão será criada.
+              </p>
+              <button type="button" className="handoff-btn" onClick={() => void chat.continueAttendance()}>
+                Continuar atendimento
+              </button>
+            </section>
           ) : (
             <ChatWindow
               messages={chat.messages}

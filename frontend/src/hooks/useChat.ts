@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { apiClient, getErrorMessage } from '../services/api'
 import { sameMessageSnapshot } from '../services/messages'
 import type {
+  CustomerChannelDto,
   CustomerDto,
   DepartmentType,
   HandoffDto,
   MessageDto,
   SessionDto,
+  TelegramLinkCodeDto,
   TransferDto,
 } from '../types/api'
 
@@ -18,17 +20,49 @@ function isOpenStatus(status: SessionDto['status'], humanRequestStatus?: Session
   )
 }
 
+function shouldAutoResume(session: SessionDto | null | undefined) {
+  if (!session) return false
+  if (session.currentChannel === 'WebPortal') return true
+  if (session.initialChannel !== 'Telegram') return true
+  return false
+}
+
 export function useChat(customerId: string | null) {
   const [customer, setCustomer] = useState<CustomerDto | null>(null)
   const [session, setSession] = useState<SessionDto | null>(null)
   const [messages, setMessages] = useState<MessageDto[]>([])
   const [handoff, setHandoff] = useState<HandoffDto | null>(null)
   const [transfers, setTransfers] = useState<TransferDto[]>([])
+  const [channels, setChannels] = useState<CustomerChannelDto[]>([])
+  const [linkCode, setLinkCode] = useState<TelegramLinkCodeDto | null>(null)
+  const [resumed, setResumed] = useState(false)
   const [contextRestored, setContextRestored] = useState(false)
   const [transferNotice, setTransferNotice] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [linking, setLinking] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const applySnapshot = useCallback(
+    (nextSession: SessionDto | null, nextMessages: MessageDto[], autoOpen: boolean) => {
+      setSession(nextSession)
+      setTransfers(nextSession?.transfers ?? [])
+      if (autoOpen && nextSession) {
+        setMessages(nextMessages)
+        setResumed(true)
+        if (nextSession.status === 'Transferred' || nextSession.status === 'WaitingForAgent') {
+          void apiClient.getAdminSession(nextSession.id).then((detail) => {
+            setHandoff(detail.handoff ?? null)
+            setTransfers(detail.transfers ?? nextSession.transfers ?? [])
+          }).catch(() => undefined)
+        }
+      } else if (!nextSession) {
+        setMessages([])
+        setResumed(false)
+      }
+    },
+    [],
+  )
 
   const load = useCallback(async () => {
     if (!customerId) {
@@ -39,83 +73,82 @@ export function useChat(customerId: string | null) {
     setLoading(true)
     setError(null)
     try {
-      const customerData = await apiClient.getCustomer(customerId)
+      const [customerData, snapshot] = await Promise.all([
+        apiClient.getCustomer(customerId),
+        apiClient.getActiveSession(),
+      ])
       setCustomer(customerData)
-
-      const sessions = await apiClient.getSessionsByCustomer(customerId)
-      const current =
-        sessions.find((item) => isOpenStatus(item.status, item.humanRequestStatus)) ?? null
-      setSession(current)
-
-      if (current) {
-        setTransfers(current.transfers ?? [])
-        const history = await apiClient.getMessages(current.id)
-        setMessages(history)
-        if (current.status === 'Transferred' || current.status === 'WaitingForAgent') {
-          const detail = await apiClient.getAdminSession(current.id)
-          setHandoff(detail.handoff ?? null)
-          setTransfers(detail.transfers ?? current.transfers ?? [])
-        }
-      }
+      setChannels(snapshot.channels ?? [])
+      applySnapshot(snapshot.session ?? null, snapshot.messages ?? [], shouldAutoResume(snapshot.session))
     } catch (err) {
       setError(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
-  }, [customerId])
+  }, [applySnapshot, customerId])
 
   useEffect(() => {
     void load()
   }, [load])
 
   useEffect(() => {
-    if (!session || !isOpenStatus(session.status, session.humanRequestStatus) || session.status === 'Active') return
+    if (!customerId) return
 
     const timer = window.setInterval(async () => {
       try {
-        const [history, updated] = await Promise.all([
-          apiClient.getMessages(session.id),
-          apiClient.getSession(session.id),
-        ])
-        setMessages((current) => (sameMessageSnapshot(current, history) ? current : history))
+        const snapshot = await apiClient.getActiveSession()
+        setChannels(snapshot.channels ?? [])
+        if (snapshot.channels?.some((item) => item.channel === 'Telegram' && item.connected)) {
+          setLinkCode(null)
+        }
+
+        const nextSession = snapshot.session ?? null
         setSession((current) => {
           if (
             current &&
-            current.status === updated.status &&
-            current.currentDepartment === updated.currentDepartment &&
-            current.updatedAt === updated.updatedAt &&
-            current.humanRequestStatus === updated.humanRequestStatus
+            nextSession &&
+            current.status === nextSession.status &&
+            current.currentDepartment === nextSession.currentDepartment &&
+            current.currentChannel === nextSession.currentChannel &&
+            current.updatedAt === nextSession.updatedAt &&
+            current.humanRequestStatus === nextSession.humanRequestStatus
           ) {
             return current
           }
-          return updated
+          return nextSession
         })
-        setTransfers(updated.transfers ?? [])
+        setTransfers(nextSession?.transfers ?? [])
+
+        if (resumed && nextSession && isOpenStatus(nextSession.status, nextSession.humanRequestStatus)) {
+          const history = snapshot.messages ?? []
+          setMessages((current) => (sameMessageSnapshot(current, history) ? current : history))
+        }
       } catch {
         // Mantém a tela utilizável se um ciclo de polling falhar.
       }
     }, 2500)
 
     return () => window.clearInterval(timer)
-  }, [session?.id, session?.status])
+  }, [customerId, resumed])
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || sending || !customerId) return
     setSending(true)
     setError(null)
     try {
-      const response = await apiClient.sendMessage(customerId, content.trim())
+      const response = await apiClient.sendCustomerMessage(content.trim())
       setMessages(response.messages)
       setHandoff(response.handoff ?? null)
       setContextRestored(response.contextRestored)
       setTransferNotice(response.transferNotice ?? null)
       setTransfers(response.transfers ?? [])
+      setResumed(true)
       setSession({
         id: response.sessionId,
         protocol: response.protocol,
         customerId,
-        customerName: customer?.name ?? 'Lucas',
-        initialChannel: session?.initialChannel ?? 'AppClaro',
+        customerName: customer?.name ?? 'Cliente',
+        initialChannel: session?.initialChannel ?? 'WebPortal',
         currentChannel: response.currentChannel,
         currentDepartment: response.currentDepartment,
         previousDepartment: response.previousDepartment,
@@ -173,6 +206,36 @@ export function useChat(customerId: string | null) {
     }
   }
 
+  const connectTelegram = async () => {
+    setLinking(true)
+    setError(null)
+    try {
+      const generated = await apiClient.createTelegramLinkCode()
+      setLinkCode(generated)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  const continueAttendance = async () => {
+    if (!session || sending) return
+    setSending(true)
+    setError(null)
+    try {
+      const snapshot = await apiClient.resumeActiveSession()
+      setChannels(snapshot.channels ?? [])
+      applySnapshot(snapshot.session ?? null, snapshot.messages ?? [], true)
+      setContextRestored(true)
+      setTransferNotice('Continuando o atendimento iniciado em outro canal. O histórico e o contexto foram mantidos.')
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSending(false)
+    }
+  }
+
   const startNewAttendance = () => {
     setSession(null)
     setMessages([])
@@ -180,8 +243,11 @@ export function useChat(customerId: string | null) {
     setTransfers([])
     setContextRestored(false)
     setTransferNotice(null)
+    setResumed(false)
     setError(null)
   }
+
+  const telegram = channels.find((item) => item.channel === 'Telegram')
 
   return {
     customer,
@@ -189,14 +255,21 @@ export function useChat(customerId: string | null) {
     messages,
     handoff,
     transfers,
+    channels,
+    telegram,
+    linkCode,
+    resumed,
     contextRestored,
     transferNotice,
     loading,
     sending,
+    linking,
     error,
     sendMessage,
     changeDepartment,
     requestHandoff,
+    connectTelegram,
+    continueAttendance,
     startNewAttendance,
     reload: load,
   }

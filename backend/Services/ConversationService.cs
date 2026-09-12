@@ -263,6 +263,17 @@ public class ConversationService : IConversationService
         var active = await _sessions.GetOpenByCustomerIdAsync(customer.Id, cancellationToken);
         if (active is not null)
         {
+            if (active.CurrentChannel != channel)
+            {
+                var previous = active.CurrentChannel;
+                active.CurrentChannel = channel;
+                active.UpdatedAt = DateTime.UtcNow;
+                await _sessions.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Current channel switched. Protocol={Protocol} From={From} To={To} CustomerId={CustomerId}",
+                    active.Protocol, previous, channel, customer.Id);
+            }
+
             return active;
         }
 

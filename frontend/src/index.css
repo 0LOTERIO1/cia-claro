@@ -125,6 +125,39 @@ dd { margin: 0; font-weight: 600; }
 }
 .channel-pill.app { background: rgba(225, 6, 0, 0.18); color: #ffb4ae; }
 .channel-pill.wa { background: rgba(18, 140, 126, 0.2); color: #8ee8d8; }
+.channel-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255,255,255,0.12);
+  color: inherit;
+  opacity: 0.85;
+}
+.channel-badge.telegram { background: rgba(34, 158, 217, 0.2); color: #9ad8f5; }
+.channel-badge.portal { background: rgba(225, 6, 0, 0.18); color: #ffc4bf; }
+.channel-badge.wa { background: rgba(18, 140, 126, 0.2); color: #8ee8d8; }
+.channel-badge.app { background: rgba(255,255,255,0.1); }
+.from-customer .channel-badge { background: rgba(255,255,255,0.18); color: #fff; }
+.channel-status { display: grid; gap: 10px; }
+.channel-status .ok { color: #b6f3d4; margin: 4px 0 0; }
+.link-box {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #15181f;
+}
+.link-box code {
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: #ffd0cc;
+}
+.channel-list { margin: 0; padding-left: 18px; color: #d7dee8; }
+.resume-panel { min-height: 280px; }
 
 .hint, .empty { color: var(--muted); font-size: 13px; }
 .handoff-btn {
@@ -182,6 +215,8 @@ dd { margin: 0; font-weight: 600; }
 .bubble header {
   display: flex;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
   font-size: 11px;
   color: var(--muted);
   margin-bottom: 4px;

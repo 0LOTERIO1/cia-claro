@@ -41,6 +41,15 @@ internal static class TestComposition
         IHumanAgentRequestRepository humanRequests = new HumanAgentRequestRepository(db);
         IUserRepository users = new UserRepository(db);
         ITransferRepository transfers = new TransferRepository(db);
+        IChannelIdentityRepository identities = new ChannelIdentityRepository(db);
+        IChannelLinkCodeRepository codes = new ChannelLinkCodeRepository(db);
+        var identityService = new ChannelIdentityService(
+            customers,
+            sessions,
+            messages,
+            identities,
+            codes,
+            NullLogger<ChannelIdentityService>.Instance);
         IIntentService intent = new IntentService();
         IContextService contextService = new ContextService(contexts, sessions, NullLogger<ContextService>.Instance);
         IOrchestrationService orchestration = new OrchestrationService(transfers, sessions, NullLogger<OrchestrationService>.Instance);
@@ -65,6 +74,7 @@ internal static class TestComposition
             handoffs,
             users,
             telegram ?? new FakeTelegramService(),
+            identityService,
             NullLogger<HumanAgentService>.Instance);
         var conversation = new ConversationService(
             customers,
@@ -79,6 +89,29 @@ internal static class TestComposition
             NullLogger<ConversationService>.Instance);
 
         return (conversation, handoff, humanAgent, db);
+    }
+
+    public static ChannelIdentityService CreateIdentities(AppDbContext db)
+    {
+        return new ChannelIdentityService(
+            new CustomerRepository(db),
+            new SessionRepository(db),
+            new MessageRepository(db),
+            new ChannelIdentityRepository(db),
+            new ChannelLinkCodeRepository(db),
+            NullLogger<ChannelIdentityService>.Instance);
+    }
+
+    public static TelegramInboundService CreateTelegramInbound(
+        AppDbContext db,
+        ConversationService conversation,
+        ITelegramService telegram)
+    {
+        return new TelegramInboundService(
+            conversation,
+            telegram,
+            CreateIdentities(db),
+            NullLogger<TelegramInboundService>.Instance);
     }
 
     public static User SeedAgent(AppDbContext db, string name = "Ana Souza")
