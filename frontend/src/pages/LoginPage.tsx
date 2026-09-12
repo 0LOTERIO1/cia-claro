@@ -5,10 +5,10 @@ import { getErrorMessage } from '../services/api'
 import { homeForRole, useAuth } from '../auth/AuthContext'
 import type { UserRole } from '../types/api'
 
-const PROFILES: { role: UserRole; title: string; email: string; description: string }[] = [
-  { role: 'Customer', title: 'Cliente', email: 'lucas@claro.com', description: 'Chat com a CIA e atendimento humano' },
-  { role: 'Agent', title: 'Funcionário Claro', email: 'agente@claro.com', description: 'Fila e chat com o cliente' },
-  { role: 'Admin', title: 'Admin', email: 'admin@claro.com', description: 'Painel operacional' },
+const PROFILES: { role: UserRole; title: string; description: string }[] = [
+  { role: 'Customer', title: 'Cliente', description: 'Acompanhe e continue seu atendimento' },
+  { role: 'Agent', title: 'Funcionário Claro', description: 'Fila e chat com o cliente' },
+  { role: 'Admin', title: 'Admin', description: 'Painel operacional' },
 ]
 
 export function LoginPage() {
@@ -61,14 +61,12 @@ export function LoginPage() {
           ))}
         </div>
         <LoginForm
-          key={selected.email}
+          key={selected.role}
           title={selected.title}
           subtitle={selected.description}
           submitting={submitting}
           error={error}
           onSubmit={handleSubmit}
-          demoEmail={selected.email}
-          demoRole={selected.role}
         />
       </section>
     </div>

@@ -1,3 +1,4 @@
+using Cia.Api.Configuration;
 using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Services;
@@ -8,64 +9,174 @@ namespace Cia.Api.Data;
 public static class DbSeeder
 {
     public const string DemoCustomerId = "CLIENTE-001";
-    public const string DemoPassword = "Claro@123";
+    public const string PedroCustomerId = "PEDRO-001";
+    public const string RafaelCustomerId = "RAFAEL-001";
+
     public const string DemoCustomerEmail = "lucas@claro.com";
+    public const string PedroEmail = "pedro@claro.com";
+    public const string RafaelEmail = "rafael@claro.com";
     public const string DemoAgentEmail = "agente@claro.com";
     public const string DemoAdminEmail = "admin@claro.com";
 
-    public static async Task SeedAsync(AppDbContext db, CancellationToken cancellationToken = default)
+    public static async Task SeedAsync(
+        AppDbContext db,
+        DemoUsersOptions? demoUsers = null,
+        bool isProduction = false,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default)
     {
-        if (!await db.Customers.AnyAsync(c => c.Id == DemoCustomerId, cancellationToken))
+        demoUsers ??= new DemoUsersOptions();
+
+        await EnsureCustomerAsync(db, DemoCustomerId, "Lucas", "11999999999", cancellationToken);
+        await EnsureCustomerAsync(db, PedroCustomerId, "Pedro", "11988887777", cancellationToken);
+        await EnsureCustomerAsync(db, RafaelCustomerId, "Rafael", "11977776666", cancellationToken);
+
+        await EnsureDemoCustomerUserAsync(
+            db, PedroEmail, "Pedro", PedroCustomerId, demoUsers.Pedro?.Password, isProduction, logger, cancellationToken);
+        await EnsureDemoCustomerUserAsync(
+            db, DemoCustomerEmail, "Lucas", DemoCustomerId, demoUsers.Lucas?.Password, isProduction, logger, cancellationToken);
+        await EnsureDemoCustomerUserAsync(
+            db, RafaelEmail, "Rafael", RafaelCustomerId, demoUsers.Rafael?.Password, isProduction, logger, cancellationToken);
+
+        await EnsureStaffUserAsync(db, DemoAgentEmail, "Ana Souza", UserRole.Agent, cancellationToken);
+        await EnsureStaffUserAsync(db, DemoAdminEmail, "Admin CIA", UserRole.Admin, cancellationToken);
+
+        await BackfillTelegramIdentitiesAsync(db, cancellationToken);
+    }
+
+    private static async Task EnsureCustomerAsync(
+        AppDbContext db,
+        string id,
+        string name,
+        string phone,
+        CancellationToken cancellationToken)
+    {
+        var customer = await db.Customers.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (customer is null)
         {
             db.Customers.Add(new Customer
             {
-                Id = DemoCustomerId,
-                Name = "Lucas",
-                Phone = "11999999999",
+                Id = id,
+                Name = name,
+                Phone = phone,
                 CreatedAt = DateTime.UtcNow
             });
-
             await db.SaveChangesAsync(cancellationToken);
+            return;
         }
 
-        await BackfillTelegramIdentitiesAsync(db, cancellationToken);
+        if (!string.Equals(customer.Name, name, StringComparison.Ordinal))
+        {
+            customer.Name = name;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
 
-        if (await db.Users.AnyAsync(cancellationToken))
+    private static async Task EnsureDemoCustomerUserAsync(
+        AppDbContext db,
+        string email,
+        string name,
+        string customerId,
+        string? password,
+        bool isProduction,
+        ILogger? logger,
+        CancellationToken cancellationToken)
+    {
+        var normalized = email.Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken);
+        var hasPassword = !string.IsNullOrWhiteSpace(password);
+
+        if (!hasPassword)
+        {
+            if (isProduction)
+            {
+                logger?.LogWarning(
+                    "Demo customer credential was not configured. Login for {Email} was not created or updated.",
+                    normalized);
+            }
+            else
+            {
+                logger?.LogInformation(
+                    "Demo customer credential was not configured. Login for {Email} was not created or updated.",
+                    normalized);
+            }
+
+            if (user is null)
+            {
+                return;
+            }
+        }
+
+        if (user is null)
+        {
+            db.Users.Add(new User
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Email = normalized,
+                PasswordHash = PasswordProtector.Hash(password!),
+                Role = UserRole.Customer,
+                CustomerId = customerId,
+                CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var changed = false;
+        if (!string.Equals(user.Name, name, StringComparison.Ordinal))
+        {
+            user.Name = name;
+            changed = true;
+        }
+
+        if (user.Role != UserRole.Customer)
+        {
+            user.Role = UserRole.Customer;
+            changed = true;
+        }
+
+        if (!string.Equals(user.CustomerId, customerId, StringComparison.Ordinal))
+        {
+            user.CustomerId = customerId;
+            changed = true;
+        }
+
+        if (hasPassword && !PasswordProtector.Verify(password!, user.PasswordHash))
+        {
+            user.PasswordHash = PasswordProtector.Hash(password!);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private static async Task EnsureStaffUserAsync(
+        AppDbContext db,
+        string email,
+        string name,
+        UserRole role,
+        CancellationToken cancellationToken)
+    {
+        var normalized = email.Trim().ToLowerInvariant();
+        var exists = await db.Users.AnyAsync(u => u.Email == normalized, cancellationToken);
+        if (exists)
         {
             return;
         }
 
-        var now = DateTime.UtcNow;
-        db.Users.AddRange(
-            new User
-            {
-                Id = Guid.NewGuid(),
-                Name = "Lucas",
-                Email = DemoCustomerEmail,
-                PasswordHash = PasswordProtector.Hash(DemoPassword),
-                Role = UserRole.Customer,
-                CustomerId = DemoCustomerId,
-                CreatedAt = now
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                Name = "Ana Souza",
-                Email = DemoAgentEmail,
-                PasswordHash = PasswordProtector.Hash(DemoPassword),
-                Role = UserRole.Agent,
-                CreatedAt = now
-            },
-            new User
-            {
-                Id = Guid.NewGuid(),
-                Name = "Admin CIA",
-                Email = DemoAdminEmail,
-                PasswordHash = PasswordProtector.Hash(DemoPassword),
-                Role = UserRole.Admin,
-                CreatedAt = now
-            });
-
+        db.Users.Add(new User
+        {
+            Id = Guid.NewGuid(),
+            Name = name,
+            Email = normalized,
+            PasswordHash = PasswordProtector.Hash("Claro@123"),
+            Role = role,
+            CreatedAt = DateTime.UtcNow
+        });
         await db.SaveChangesAsync(cancellationToken);
     }
 

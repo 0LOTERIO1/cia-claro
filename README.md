@@ -148,15 +148,9 @@ URL:
 
 A variável `VITE_API_URL` aponta para `http://localhost:5080`.
 
-## Cliente fictício de demonstração
+## Clientes de demonstração
 
-| Campo | Valor |
-| --- | --- |
-| Customer ID | `CLIENTE-001` |
-| Nome | Lucas |
-| Telefone | 11999999999 |
-
-Esses dados existem apenas para a demonstração acadêmica.
+O seed do backend cria as identidades de Pedro, Lucas e Rafael. As senhas de login desses clientes vêm de configuração local ou variáveis de ambiente e nunca são gravadas no código nem exibidas no frontend.
 
 ## Fluxo completo de demonstração
 

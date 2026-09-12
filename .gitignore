@@ -44,3 +44,4 @@ coverage/
 
 # Local ASP.NET configuration
 appsettings.Development.json
+appsettings.Local.json

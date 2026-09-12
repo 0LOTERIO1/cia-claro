@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Cia.Api</RootNamespace>
+    <UserSecretsId>cia-api-7e4c2b91-6a18-4d5f-9c33-8f0e1b2a6d47</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

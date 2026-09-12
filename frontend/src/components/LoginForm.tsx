@@ -1,5 +1,4 @@
 import { useState, type FormEvent } from 'react'
-import type { UserRole } from '../types/api'
 
 interface Props {
   title: string
@@ -7,13 +6,11 @@ interface Props {
   submitting: boolean
   error: string | null
   onSubmit: (email: string, password: string) => Promise<void>
-  demoEmail: string
-  demoRole: UserRole
 }
 
-export function LoginForm({ title, subtitle, submitting, error, onSubmit, demoEmail, demoRole }: Props) {
-  const [email, setEmail] = useState(demoEmail)
-  const [password, setPassword] = useState('Claro@123')
+export function LoginForm({ title, subtitle, submitting, error, onSubmit }: Props) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -21,7 +18,7 @@ export function LoginForm({ title, subtitle, submitting, error, onSubmit, demoEm
   }
 
   return (
-    <form className="login-form" onSubmit={(event) => void submit(event)}>
+    <form className="login-form" onSubmit={(event) => void submit(event)} autoComplete="off">
       <h2>{title}</h2>
       <p className="hint">{subtitle}</p>
       {error && <div className="banner error">{error}</div>}
@@ -48,10 +45,6 @@ export function LoginForm({ title, subtitle, submitting, error, onSubmit, demoEm
       <button type="submit" disabled={submitting || !email.trim() || !password}>
         {submitting ? 'Entrando...' : 'Entrar'}
       </button>
-      <p className="hint">
-        Demonstração {demoRole === 'Customer' ? 'cliente' : demoRole === 'Agent' ? 'funcionário' : 'admin'}:{' '}
-        <strong>{demoEmail}</strong> / <strong>Claro@123</strong>
-      </p>
     </form>
   )
 }
