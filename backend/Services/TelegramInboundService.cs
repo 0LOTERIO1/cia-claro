@@ -44,43 +44,59 @@ public class TelegramInboundService : ITelegramInboundService
         var firstName = message.From.FirstName;
         var username = message.From.Username;
         var messageText = Truncate(message.Text);
+        var stage = "received";
 
         _logger.LogInformation(
             "Telegram update received. UpdateId={UpdateId} ChatId={ChatId} UserId={UserId} Username={Username}",
             update.UpdateId, telegramChatId, telegramUserId, username);
 
-        if (TryParseLinkCommand(messageText, out var linkCode))
+        try
         {
-            await HandleLinkCommandAsync(linkCode, telegramUserId, telegramChatId, firstName, cancellationToken);
-            return;
-        }
-
-        var customer = await _identities.GetOrCreateTelegramCustomerAsync(
-            telegramUserId,
-            telegramChatId,
-            firstName,
-            cancellationToken);
-        _logger.LogInformation(
-            "Telegram customer identified. CustomerId={CustomerId} Name={Name}",
-            customer.Id, customer.Name);
-
-        var response = await _conversations.SendMessageAsync(
-            new SendMessageRequest
+            if (TryParseLinkCommand(messageText, out var linkCode))
             {
-                CustomerId = customer.Id,
-                Channel = ChannelType.Telegram,
-                Content = messageText
-            },
-            cancellationToken);
+                stage = "link-command";
+                await HandleLinkCommandAsync(linkCode, telegramUserId, telegramChatId, firstName, cancellationToken);
+                return;
+            }
 
-        _logger.LogInformation(
-            "Telegram message processed. Protocol={Protocol} Status={Status} Intent={Intent}",
-            response.Protocol, response.Status, response.DetectedIntent);
+            stage = "resolve-customer";
+            var customer = await _identities.GetOrCreateTelegramCustomerAsync(
+                telegramUserId,
+                telegramChatId,
+                firstName,
+                cancellationToken);
+            _logger.LogInformation(
+                "Telegram customer identified. CustomerId={CustomerId} Name={Name}",
+                customer.Id, customer.Name);
 
-        var last = response.Messages.LastOrDefault();
-        if (last is { Sender: MessageSender.Assistant } && response.CurrentChannel == ChannelType.Telegram)
+            stage = "conversation";
+            var response = await _conversations.SendMessageAsync(
+                new SendMessageRequest
+                {
+                    CustomerId = customer.Id,
+                    Channel = ChannelType.Telegram,
+                    Content = messageText
+                },
+                cancellationToken);
+
+            _logger.LogInformation(
+                "Telegram message processed. Protocol={Protocol} Status={Status} Intent={Intent}",
+                response.Protocol, response.Status, response.DetectedIntent);
+
+            stage = "telegram-reply";
+            var last = response.Messages.LastOrDefault();
+            if (last is { Sender: MessageSender.Assistant } && response.CurrentChannel == ChannelType.Telegram)
+            {
+                await _telegram.SendMessageAsync(telegramChatId, last.Content, cancellationToken);
+            }
+        }
+        catch (Exception ex)
         {
-            await _telegram.SendMessageAsync(telegramChatId, last.Content, cancellationToken);
+            _logger.LogError(
+                ex,
+                "Telegram inbound failed. UpdateId={UpdateId} TelegramUserId={TelegramUserId} Stage={Stage}",
+                update.UpdateId, telegramUserId, stage);
+            throw;
         }
     }
 

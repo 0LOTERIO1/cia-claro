@@ -87,10 +87,23 @@ public class ChannelIdentityService : IChannelIdentityService
             return legacy;
         }
 
+        var temporaryCustomerId = $"TG-{telegramUserId}";
+        var existingTemporary = await _customers.GetByIdAsync(temporaryCustomerId, cancellationToken);
+        if (existingTemporary is not null)
+        {
+            RestoreTemporaryTelegramCustomer(existingTemporary, telegramUserId, telegramChatId, firstName);
+            await EnsureIdentityAsync(existingTemporary, telegramUserId, telegramChatId, firstName, cancellationToken);
+            await _customers.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation(
+                "Reused orphan Telegram customer. CustomerId={CustomerId} TelegramUserId={TelegramUserId}",
+                existingTemporary.Id, telegramUserId);
+            return existingTemporary;
+        }
+
         var name = string.IsNullOrWhiteSpace(firstName) ? $"Cliente {telegramUserId}" : firstName.Trim();
         var customer = new Customer
         {
-            Id = $"TG-{telegramUserId}",
+            Id = temporaryCustomerId,
             Name = name,
             Phone = TruncatePhone(telegramUserId.ToString()),
             TelegramUserId = telegramUserId,
@@ -420,6 +433,20 @@ public class ChannelIdentityService : IChannelIdentityService
             CreatedAt = DateTime.UtcNow
         }, cancellationToken);
         await _customers.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void RestoreTemporaryTelegramCustomer(
+        Customer customer,
+        long telegramUserId,
+        long telegramChatId,
+        string? firstName)
+    {
+        customer.TelegramUserId = telegramUserId;
+        customer.TelegramChatId = telegramChatId;
+        if (!string.IsNullOrWhiteSpace(firstName))
+        {
+            customer.Name = firstName.Trim();
+        }
     }
 
     public static bool IsTemporaryCustomer(string customerId) =>
