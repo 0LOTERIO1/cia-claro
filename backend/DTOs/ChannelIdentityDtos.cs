@@ -23,6 +23,8 @@ public class ActiveSessionResponse
     public SessionDto? Session { get; set; }
     public IReadOnlyList<MessageDto> Messages { get; set; } = Array.Empty<MessageDto>();
     public IReadOnlyList<CustomerChannelDto> Channels { get; set; } = Array.Empty<CustomerChannelDto>();
+    public bool CanRate { get; set; }
+    public ServiceRatingDto? Rating { get; set; }
 }
 
 public class CustomerMessageRequest

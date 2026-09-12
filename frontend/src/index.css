@@ -102,6 +102,12 @@ h1 { margin: 0; font-size: clamp(1.4rem, 3vw, 2rem); }
   gap: 16px;
 }
 
+.layout main {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
 .panel, .chat-window, .card {
   background: var(--bg-elevated);
   border: 1px solid var(--line);
@@ -325,9 +331,109 @@ tbody tr:hover { background: rgba(255,255,255,0.03); }
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0,0,0,0);
+  clip: rect(0, 0, 0, 0);
   border: 0;
 }
+
+.service-rating-card form,
+.service-rating-card fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.service-rating-card legend {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.service-rating-card textarea {
+  width: 100%;
+  min-height: 6rem;
+  resize: vertical;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 12px;
+  line-height: var(--line-height);
+}
+
+.star-rating {
+  display: grid;
+  gap: 8px;
+}
+
+.star-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 12px;
+  background: var(--bg-soft);
+}
+
+.star-option input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--warn);
+}
+
+.star-option .star,
+.star-rating-readonly .star {
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.star-option.is-filled,
+.star-rating-readonly .star.is-filled {
+  font-weight: 700;
+}
+
+.star-option.is-filled .star,
+.star-rating-readonly .star.is-filled {
+  color: var(--warn);
+}
+
+.star-caption {
+  color: var(--text);
+}
+
+.star-rating-readonly {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.rating-distribution {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.rating-distribution li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+
+.rating-metrics h3 {
+  margin: 8px 0 12px;
+  font-size: 1rem;
+}
+
+.ok { color: var(--ok); }
 
 .login-card { max-width: 520px; margin: 0 auto; }
 .login-form { display: grid; gap: 12px; }
@@ -553,7 +659,9 @@ html[data-high-contrast="true"] .chat-window,
 html[data-high-contrast="true"] .card,
 html[data-high-contrast="true"] .queue-card,
 html[data-high-contrast="true"] .composer,
-html[data-high-contrast="true"] .a11y-panel {
+html[data-high-contrast="true"] .a11y-panel,
+html[data-high-contrast="true"] .star-option,
+html[data-high-contrast="true"] .service-rating-card textarea {
   border-width: 2px;
   border-color: #fff;
 }

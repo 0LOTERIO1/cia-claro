@@ -17,6 +17,7 @@ import type {
   ChannelUnlinkDto,
   UserDto,
   AccessibilityPreferencesDto,
+  SubmitServiceRatingResponse,
 } from '../types/api'
 
 const TOKEN_KEY = 'cia.token'
@@ -128,6 +129,13 @@ export const apiClient = {
   },
   sendCustomerMessage: async (content: string) => {
     const { data } = await api.post<SendMessageResponse>('/api/customer/messages', { content })
+    return data
+  },
+  submitServiceRating: async (sessionId: string, score: number, comment?: string) => {
+    const { data } = await api.post<SubmitServiceRatingResponse>(`/api/customer/sessions/${sessionId}/rating`, {
+      score,
+      comment,
+    })
     return data
   },
   changeDepartment: async (sessionId: string, department: DepartmentType, reason: string) => {

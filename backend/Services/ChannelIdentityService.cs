@@ -305,16 +305,20 @@ public class ChannelIdentityService : IChannelIdentityService
         _ = await _customers.GetByIdAsync(customerId, cancellationToken)
             ?? throw new NotFoundException("Cliente não encontrado.");
 
-        var session = await _sessions.GetOpenByCustomerIdAsync(customerId, cancellationToken);
+        var session = await _sessions.GetOpenByCustomerIdAsync(customerId, cancellationToken)
+            ?? await _sessions.GetLatestByCustomerIdAsync(customerId, cancellationToken);
+        var mapped = session?.ToDto();
         IReadOnlyList<MessageDto> messages = session is null
             ? Array.Empty<MessageDto>()
             : (await _messages.GetBySessionIdAsync(session.Id, cancellationToken)).Select(m => m.ToDto()).ToList();
 
         return new ActiveSessionResponse
         {
-            Session = session?.ToDto(),
+            Session = mapped,
             Messages = messages,
-            Channels = await ListChannelsAsync(customerId, cancellationToken)
+            Channels = await ListChannelsAsync(customerId, cancellationToken),
+            CanRate = mapped?.CanRate ?? false,
+            Rating = mapped?.Rating
         };
     }
 

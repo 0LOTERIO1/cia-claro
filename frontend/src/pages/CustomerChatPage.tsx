@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useChat } from '../hooks/useChat'
 import { formatChannel, formatDateTime, formatDepartment, formatStatus } from '../services/labels'
 import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
+import { ServiceRatingCard } from '../components/ServiceRatingCard'
 
 export function CustomerChatPage() {
   const { user, logout } = useAuth()
@@ -13,6 +14,7 @@ export function CustomerChatPage() {
   const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const waiting = chat.session?.status === 'WaitingForAgent'
   const withAgent = chat.session?.status === 'Transferred'
+  const resolved = chat.session?.status === 'Resolved'
   const humanFlow = waiting || withAgent
   const telegramConnected = Boolean(chat.telegram?.connected)
   const pendingTelegramSession =
@@ -127,8 +129,12 @@ export function CustomerChatPage() {
 
           {chat.session && (
             <section className="panel">
-              <h2>Atendimento em andamento</h2>
-              <p className="hint">Você possui um atendimento em andamento.</p>
+              <h2>{resolved ? 'Atendimento finalizado' : 'Atendimento em andamento'}</h2>
+              <p className="hint">
+                {resolved
+                  ? 'Este atendimento foi encerrado. Você pode avaliar a experiência.'
+                  : 'Você possui um atendimento em andamento.'}
+              </p>
               <dl>
                 <div>
                   <dt>Protocolo</dt>
@@ -181,7 +187,7 @@ export function CustomerChatPage() {
               Falar com atendente
             </button>
           )}
-          {chat.session?.status === 'Resolved' && (
+          {resolved && (
             <button type="button" className="handoff-btn" onClick={chat.startNewAttendance}>
               Novo atendimento
             </button>
@@ -203,13 +209,24 @@ export function CustomerChatPage() {
               </button>
             </section>
           ) : (
-            <ChatWindow
-              messages={chat.messages}
-              sending={chat.sending}
-              disabled={Boolean(chat.error && !chat.customer) || chat.session?.status === 'Resolved'}
-              status={chat.session?.status}
-              onSend={chat.sendMessage}
-            />
+            <>
+              {resolved && chat.session && (
+                <ServiceRatingCard
+                  canRate={Boolean(chat.session.canRate)}
+                  rating={chat.session.rating}
+                  submitting={chat.ratingSubmitting}
+                  error={chat.ratingError}
+                  onSubmit={chat.submitRating}
+                />
+              )}
+              <ChatWindow
+                messages={chat.messages}
+                sending={chat.sending}
+                disabled={Boolean(chat.error && !chat.customer) || resolved}
+                status={chat.session?.status}
+                onSend={chat.sendMessage}
+              />
+            </>
           )}
         </main>
       </div>

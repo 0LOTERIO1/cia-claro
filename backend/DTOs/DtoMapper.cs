@@ -37,7 +37,18 @@ public static class DtoMapper
         Transfers = (session.Transfers ?? Array.Empty<DepartmentTransfer>())
             .OrderBy(t => t.CreatedAt)
             .Select(t => t.ToDto())
-            .ToList()
+            .ToList(),
+        CanRate = session.Status == SessionStatus.Resolved && session.Rating is null,
+        Rating = session.Rating?.ToDto()
+    };
+
+    public static ServiceRatingDto ToDto(this ServiceRating rating) => new()
+    {
+        Id = rating.Id,
+        SessionId = rating.SessionId,
+        Score = rating.Score,
+        Comment = rating.Comment,
+        CreatedAt = rating.CreatedAt
     };
 
     public static MessageDto ToDto(this Message message) => new()

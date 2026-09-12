@@ -9,4 +9,5 @@ public class AdminSessionDetailDto
     public HandoffDto? Handoff { get; set; }
     public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
     public IReadOnlyList<CustomerChannelDto> LinkedChannels { get; set; } = Array.Empty<CustomerChannelDto>();
+    public ServiceRatingDto? Rating { get; set; }
 }

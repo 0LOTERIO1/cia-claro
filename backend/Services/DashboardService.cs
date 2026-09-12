@@ -12,28 +12,34 @@ public class DashboardService : IDashboardService
     private readonly IMessageRepository _messages;
     private readonly IHandoffRepository _handoffs;
     private readonly IChannelIdentityRepository _identities;
+    private readonly IServiceRatingRepository _ratings;
 
     public DashboardService(
         ISessionRepository sessions,
         IMessageRepository messages,
         IHandoffRepository handoffs,
-        IChannelIdentityRepository identities)
+        IChannelIdentityRepository identities,
+        IServiceRatingRepository ratings)
     {
         _sessions = sessions;
         _messages = messages;
         _handoffs = handoffs;
         _identities = identities;
+        _ratings = ratings;
     }
 
     public async Task<DashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
     {
         var sessions = await _sessions.GetAllAsync(cancellationToken);
+        var ratings = await _ratings.GetAllAsync(cancellationToken);
+        var resolvedCount = sessions.Count(s => s.Status == SessionStatus.Resolved);
+        var ratedCount = ratings.Count;
 
         return new DashboardDto
         {
             TotalSessions = sessions.Count,
             ActiveSessions = sessions.Count(s => s.Status == SessionStatus.Active),
-            ResolvedSessions = sessions.Count(s => s.Status == SessionStatus.Resolved),
+            ResolvedSessions = resolvedCount,
             TransferredSessions = sessions.Count(s =>
                 s.Status is SessionStatus.Transferred or SessionStatus.WaitingForAgent),
             SessionsByChannel = Enum.GetValues<ChannelType>()
@@ -48,6 +54,20 @@ public class DashboardService : IDashboardService
                 {
                     Department = department,
                     Count = sessions.Count(s => s.CurrentDepartment == department)
+                })
+                .ToList(),
+            AverageScore = ratedCount == 0
+                ? null
+                : Math.Round((decimal)ratings.Average(r => r.Score), 1, MidpointRounding.AwayFromZero),
+            RatedSessions = ratedCount,
+            RatingRate = resolvedCount == 0
+                ? 0
+                : Math.Round((decimal)ratedCount * 100m / resolvedCount, 0, MidpointRounding.AwayFromZero),
+            ScoreDistribution = Enumerable.Range(1, 5)
+                .Select(score => new StarCountDto
+                {
+                    Score = score,
+                    Count = ratings.Count(r => r.Score == score)
                 })
                 .ToList()
         };
@@ -85,7 +105,8 @@ public class DashboardService : IDashboardService
                 Connected = true,
                 DisplayName = identity.DisplayName,
                 VerifiedAt = identity.VerifiedAt ?? identity.CreatedAt
-            }).ToList()
+            }).ToList(),
+            Rating = session.Rating?.ToDto()
         };
     }
 }

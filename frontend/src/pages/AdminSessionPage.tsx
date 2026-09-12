@@ -4,6 +4,7 @@ import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { HandoffSummary } from '../components/HandoffSummary'
 import { JourneyTimeline } from '../components/JourneyTimeline'
 import { MessageBubble } from '../components/MessageBubble'
+import { ServiceRatingCard } from '../components/ServiceRatingCard'
 import { useAccessibility } from '../accessibility/AccessibilityContext'
 import { useSpeechSynthesis } from '../accessibility/useSpeechSynthesis'
 import { apiClient, getErrorMessage } from '../services/api'
@@ -152,6 +153,12 @@ export function AdminSessionPage() {
               transfers={detail.transfers ?? detail.session.transfers ?? []}
             />
             <HandoffSummary handoff={detail.handoff ?? null} />
+            <ServiceRatingCard
+              readOnly
+              canRate={false}
+              rating={detail.rating ?? detail.session.rating}
+              waitingMessage="Este atendimento ainda não foi avaliado."
+            />
           </aside>
           <main className="chat-window">
             <div className="chat-history" role="region" aria-label="Histórico da conversa">

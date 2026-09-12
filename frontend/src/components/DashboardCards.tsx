@@ -1,5 +1,5 @@
 import type { DashboardDto } from '../types/api'
-import { formatDepartment } from '../services/labels'
+import { formatAverageScore, formatDepartment } from '../services/labels'
 
 interface Props {
   dashboard: DashboardDto
@@ -17,14 +17,44 @@ export function DashboardCards({ dashboard }: Props) {
     })),
   ]
 
+  const distribution = dashboard.scoreDistribution ?? []
+
   return (
-    <div className="cards">
-      {cards.map((card) => (
-        <article key={card.label} className="card">
-          <span>{card.label}</span>
-          <strong>{card.value}</strong>
-        </article>
-      ))}
-    </div>
+    <>
+      <div className="cards">
+        {cards.map((card) => (
+          <article key={card.label} className="card">
+            <span>{card.label}</span>
+            <strong>{card.value}</strong>
+          </article>
+        ))}
+      </div>
+      <section className="panel rating-metrics" aria-label="Avaliações do atendimento">
+        <h2>Avaliação do atendimento</h2>
+        <div className="cards">
+          <article className="card">
+            <span>Nota média</span>
+            <strong>{formatAverageScore(dashboard.averageScore)}</strong>
+          </article>
+          <article className="card">
+            <span>Atendimentos avaliados</span>
+            <strong>{dashboard.ratedSessions}</strong>
+          </article>
+          <article className="card">
+            <span>Taxa de avaliação</span>
+            <strong>{dashboard.ratingRate}%</strong>
+          </article>
+        </div>
+        <h3>Distribuição</h3>
+        <ul className="rating-distribution">
+          {[...distribution].sort((a, b) => b.score - a.score).map((item) => (
+            <li key={item.score}>
+              <span>{item.score} ★</span>
+              <strong>{item.count}</strong>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
   )
 }

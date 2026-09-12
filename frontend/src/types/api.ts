@@ -79,6 +79,22 @@ export interface SessionDto {
   context?: ContextDto | null
   humanRequestStatus?: HumanAgentRequestStatus | null
   transfers: TransferDto[]
+  canRate?: boolean
+  rating?: ServiceRatingDto | null
+}
+
+export interface ServiceRatingDto {
+  id: string
+  sessionId: string
+  score: number
+  comment?: string | null
+  createdAt: string
+}
+
+export interface SubmitServiceRatingResponse {
+  success: boolean
+  message: string
+  rating?: ServiceRatingDto | null
 }
 
 export interface HandoffDto {
@@ -125,6 +141,15 @@ export interface DashboardDto {
   transferredSessions: number
   sessionsByChannel: ChannelCountDto[]
   sessionsByDepartment: DepartmentCountDto[]
+  averageScore?: number | null
+  ratedSessions: number
+  ratingRate: number
+  scoreDistribution: StarCountDto[]
+}
+
+export interface StarCountDto {
+  score: number
+  count: number
 }
 
 export interface CustomerChannelDto {
@@ -145,6 +170,8 @@ export interface ActiveSessionResponse {
   session?: SessionDto | null
   messages: MessageDto[]
   channels: CustomerChannelDto[]
+  canRate?: boolean
+  rating?: ServiceRatingDto | null
 }
 
 export interface ChannelUnlinkDto {
@@ -160,6 +187,7 @@ export interface AdminSessionDetailDto {
   handoff?: HandoffDto | null
   transfers: TransferDto[]
   linkedChannels: CustomerChannelDto[]
+  rating?: ServiceRatingDto | null
 }
 
 export interface UserDto {

@@ -133,6 +133,7 @@ builder.Services.AddScoped<IHumanAgentRequestRepository, HumanAgentRequestReposi
 builder.Services.AddScoped<IChannelIdentityRepository, ChannelIdentityRepository>();
 builder.Services.AddScoped<IChannelLinkCodeRepository, ChannelLinkCodeRepository>();
 builder.Services.AddScoped<IAccessibilityPreferencesRepository, AccessibilityPreferencesRepository>();
+builder.Services.AddScoped<IServiceRatingRepository, ServiceRatingRepository>();
 
 builder.Services.AddScoped<IIntentService, IntentService>();
 builder.Services.AddScoped<IContextService, ContextService>();
@@ -148,6 +149,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccessibilityService, AccessibilityService>();
 builder.Services.AddScoped<IHumanAgentService, HumanAgentService>();
 builder.Services.AddScoped<IChannelIdentityService, ChannelIdentityService>();
+builder.Services.AddScoped<IServiceRatingService, ServiceRatingService>();
 builder.Services.AddScoped<ITelegramService, TelegramService>();
 builder.Services.AddScoped<ITelegramInboundService, TelegramInboundService>();
 builder.Services.AddHttpClient("Telegram");

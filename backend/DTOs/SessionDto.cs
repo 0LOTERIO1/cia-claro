@@ -21,4 +21,6 @@ public class SessionDto
     public ContextDto? Context { get; set; }
     public HumanAgentRequestStatus? HumanRequestStatus { get; set; }
     public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
+    public bool CanRate { get; set; }
+    public ServiceRatingDto? Rating { get; set; }
 }

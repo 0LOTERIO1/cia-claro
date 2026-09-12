@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<CustomerChannelIdentity> CustomerChannelIdentities => Set<CustomerChannelIdentity>();
     public DbSet<ChannelLinkCode> ChannelLinkCodes => Set<ChannelLinkCode>();
     public DbSet<AccessibilityPreferences> AccessibilityPreferences => Set<AccessibilityPreferences>();
+    public DbSet<ServiceRating> ServiceRatings => Set<ServiceRating>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -204,6 +205,28 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.LinkCodes)
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ServiceRating>(entity =>
+        {
+            entity.ToTable("service_ratings");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CustomerId).IsRequired().HasMaxLength(40);
+            entity.Property(x => x.Score).IsRequired();
+            entity.Property(x => x.Comment).HasMaxLength(1000);
+            entity.Property(x => x.ChannelAtCompletion).HasConversion<string>().HasMaxLength(32);
+            entity.HasIndex(x => x.SessionId).IsUnique();
+            entity.HasIndex(x => x.CustomerId);
+
+            entity.HasOne(x => x.Session)
+                .WithOne(x => x.Rating)
+                .HasForeignKey<ServiceRating>(x => x.SessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Customer)
+                .WithMany(x => x.ServiceRatings)
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

@@ -445,7 +445,8 @@ public class OmnichannelFlowTests
             new SessionRepository(db),
             new MessageRepository(db),
             new HandoffRepository(db),
-            new ChannelIdentityRepository(db));
+            new ChannelIdentityRepository(db),
+            new ServiceRatingRepository(db));
         var detail = await dashboard.GetSessionDetailAsync(db.ConversationSessions.Single().Id);
 
         Assert.Equal(DbSeeder.DemoCustomerId, detail.Customer.Id);

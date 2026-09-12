@@ -17,21 +17,12 @@ public class SessionRepository : ISessionRepository
 
     public Task<ConversationSession?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return _db.ConversationSessions
-            .Include(s => s.Customer)
-            .Include(s => s.Context)
-            .Include(s => s.Transfers)
-            .Include(s => s.HumanAgentRequests)
-            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        return Query().FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
     public Task<ConversationSession?> GetActiveByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default)
     {
-        return _db.ConversationSessions
-            .Include(s => s.Customer)
-            .Include(s => s.Context)
-            .Include(s => s.Transfers)
-            .Include(s => s.HumanAgentRequests)
+        return Query()
             .Where(s => s.CustomerId == customerId && s.Status == SessionStatus.Active)
             .OrderByDescending(s => s.UpdatedAt)
             .FirstOrDefaultAsync(cancellationToken);
@@ -39,11 +30,7 @@ public class SessionRepository : ISessionRepository
 
     public Task<ConversationSession?> GetOpenByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default)
     {
-        return _db.ConversationSessions
-            .Include(s => s.Customer)
-            .Include(s => s.Context)
-            .Include(s => s.Transfers)
-            .Include(s => s.HumanAgentRequests)
+        return Query()
             .Where(s => s.CustomerId == customerId &&
                         (s.Status == SessionStatus.Active ||
                          s.Status == SessionStatus.WaitingForAgent ||
@@ -55,13 +42,17 @@ public class SessionRepository : ISessionRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<ConversationSession?> GetLatestByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default)
+    {
+        return Query()
+            .Where(s => s.CustomerId == customerId)
+            .OrderByDescending(s => s.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ConversationSession>> GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default)
     {
-        return await _db.ConversationSessions
-            .Include(s => s.Customer)
-            .Include(s => s.Context)
-            .Include(s => s.Transfers)
-            .Include(s => s.HumanAgentRequests)
+        return await Query()
             .Where(s => s.CustomerId == customerId)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(cancellationToken);
@@ -69,11 +60,7 @@ public class SessionRepository : ISessionRepository
 
     public async Task<IReadOnlyList<ConversationSession>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _db.ConversationSessions
-            .Include(s => s.Customer)
-            .Include(s => s.Context)
-            .Include(s => s.Transfers)
-            .Include(s => s.HumanAgentRequests)
+        return await Query()
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -96,5 +83,15 @@ public class SessionRepository : ISessionRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private IQueryable<ConversationSession> Query()
+    {
+        return _db.ConversationSessions
+            .Include(s => s.Customer)
+            .Include(s => s.Context)
+            .Include(s => s.Transfers)
+            .Include(s => s.HumanAgentRequests)
+            .Include(s => s.Rating);
     }
 }

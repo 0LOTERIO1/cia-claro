@@ -22,4 +22,5 @@ public class ConversationSession
     public ICollection<Handoff> Handoffs { get; set; } = new List<Handoff>();
     public ICollection<DepartmentTransfer> Transfers { get; set; } = new List<DepartmentTransfer>();
     public ICollection<HumanAgentRequest> HumanAgentRequests { get; set; } = new List<HumanAgentRequest>();
+    public ServiceRating? Rating { get; set; }
 }

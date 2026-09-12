@@ -12,4 +12,5 @@ public class Customer
     public ICollection<ConversationSession> Sessions { get; set; } = new List<ConversationSession>();
     public ICollection<CustomerChannelIdentity> ChannelIdentities { get; set; } = new List<CustomerChannelIdentity>();
     public ICollection<ChannelLinkCode> LinkCodes { get; set; } = new List<ChannelLinkCode>();
+    public ICollection<ServiceRating> ServiceRatings { get; set; } = new List<ServiceRating>();
 }

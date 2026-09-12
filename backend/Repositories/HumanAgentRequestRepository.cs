@@ -73,6 +73,8 @@ public class HumanAgentRequestRepository : IHumanAgentRequestRepository
             .Include(r => r.Session)
                 .ThenInclude(s => s.Context)
             .Include(r => r.Session)
-                .ThenInclude(s => s.Transfers);
+                .ThenInclude(s => s.Transfers)
+            .Include(r => r.Session)
+                .ThenInclude(s => s.Rating);
     }
 }

@@ -10,6 +10,10 @@ public class DashboardDto
     public int TransferredSessions { get; set; }
     public IReadOnlyList<ChannelCountDto> SessionsByChannel { get; set; } = Array.Empty<ChannelCountDto>();
     public IReadOnlyList<DepartmentCountDto> SessionsByDepartment { get; set; } = Array.Empty<DepartmentCountDto>();
+    public decimal? AverageScore { get; set; }
+    public int RatedSessions { get; set; }
+    public decimal RatingRate { get; set; }
+    public IReadOnlyList<StarCountDto> ScoreDistribution { get; set; } = Array.Empty<StarCountDto>();
 }
 
 public class ChannelCountDto

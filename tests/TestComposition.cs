@@ -121,6 +121,21 @@ internal static class TestComposition
             NullLogger<ChannelIdentityService>.Instance);
     }
 
+    public static ServiceRatingService CreateRatings(AppDbContext db)
+    {
+        return new ServiceRatingService(new SessionRepository(db), new ServiceRatingRepository(db));
+    }
+
+    public static DashboardService CreateDashboard(AppDbContext db)
+    {
+        return new DashboardService(
+            new SessionRepository(db),
+            new MessageRepository(db),
+            new HandoffRepository(db),
+            new ChannelIdentityRepository(db),
+            new ServiceRatingRepository(db));
+    }
+
     public static TelegramInboundService CreateTelegramInbound(
         AppDbContext db,
         ConversationService conversation,

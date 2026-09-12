@@ -72,3 +72,24 @@ export function formatDateTime(value: string): string {
     minute: '2-digit',
   })
 }
+
+export const STAR_SCORE_LABELS: Record<number, string> = {
+  1: 'Muito ruim',
+  2: 'Ruim',
+  3: 'Regular',
+  4: 'Bom',
+  5: 'Excelente',
+}
+
+export function formatStarScore(score: number): string {
+  return `${score} de 5 estrelas — ${STAR_SCORE_LABELS[score] ?? score}`
+}
+
+export function formatRatingCell(score?: number | null): string {
+  return score ? `${score} ★` : 'Não avaliado'
+}
+
+export function formatAverageScore(value?: number | null): string {
+  if (value == null) return '—'
+  return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5`
+}

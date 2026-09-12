@@ -3,6 +3,7 @@ import { HandoffSummary } from './HandoffSummary'
 import { JourneyTimeline } from './JourneyTimeline'
 import type { AgentSessionDetailDto } from '../types/api'
 import { formatChannel, formatDepartment, formatIssue, formatStatus } from '../services/labels'
+import { ServiceRatingCard } from './ServiceRatingCard'
 
 interface Props {
   detail: AgentSessionDetailDto
@@ -74,6 +75,16 @@ export function AgentChat({ detail, sending, onSend, onFinish }: Props) {
           <button type="button" className="handoff-btn" onClick={onFinish} aria-label="Encerrar atendimento">
             Encerrar atendimento
           </button>
+        )}
+        {finished && (
+          <p className="hint" role="status">
+            {detail.session.rating
+              ? `Cliente avaliou: ${detail.session.rating.score}/5`
+              : 'Atendimento finalizado. Aguardando avaliação do cliente.'}
+          </p>
+        )}
+        {finished && detail.session.rating && (
+          <ServiceRatingCard readOnly rating={detail.session.rating} />
         )}
       </aside>
       <main>

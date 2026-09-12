@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { apiClient, getErrorMessage } from '../services/api'
 import { sameMessageSnapshot } from '../services/messages'
 import type {
@@ -7,6 +7,7 @@ import type {
   DepartmentType,
   HandoffDto,
   MessageDto,
+  ServiceRatingDto,
   SessionDto,
   TelegramLinkCodeDto,
   TransferDto,
@@ -22,9 +23,23 @@ function isOpenStatus(status: SessionDto['status'], humanRequestStatus?: Session
 
 function shouldAutoResume(session: SessionDto | null | undefined) {
   if (!session) return false
+  if (session.status === 'Resolved') return true
   if (session.currentChannel === 'WebPortal') return true
   if (session.initialChannel !== 'Telegram') return true
   return false
+}
+
+function sameSessionSnapshot(current: SessionDto, next: SessionDto) {
+  return (
+    current.status === next.status &&
+    current.currentDepartment === next.currentDepartment &&
+    current.currentChannel === next.currentChannel &&
+    current.updatedAt === next.updatedAt &&
+    current.humanRequestStatus === next.humanRequestStatus &&
+    current.canRate === next.canRate &&
+    current.rating?.score === next.rating?.score &&
+    current.rating?.comment === next.rating?.comment
+  )
 }
 
 export function useChat(customerId: string | null) {
@@ -43,6 +58,9 @@ export function useChat(customerId: string | null) {
   const [linking, setLinking] = useState(false)
   const [unlinking, setUnlinking] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ratingError, setRatingError] = useState<string | null>(null)
+  const [ratingSubmitting, setRatingSubmitting] = useState(false)
+  const startingFreshRef = useRef(false)
 
   const applySnapshot = useCallback(
     (nextSession: SessionDto | null, nextMessages: MessageDto[], autoOpen: boolean) => {
@@ -104,16 +122,17 @@ export function useChat(customerId: string | null) {
         }
 
         const nextSession = snapshot.session ?? null
+        if (startingFreshRef.current) {
+          if (!nextSession || !isOpenStatus(nextSession.status, nextSession.humanRequestStatus)) {
+            return
+          }
+          startingFreshRef.current = false
+          applySnapshot(nextSession, snapshot.messages ?? [], true)
+          return
+        }
+
         setSession((current) => {
-          if (
-            current &&
-            nextSession &&
-            current.status === nextSession.status &&
-            current.currentDepartment === nextSession.currentDepartment &&
-            current.currentChannel === nextSession.currentChannel &&
-            current.updatedAt === nextSession.updatedAt &&
-            current.humanRequestStatus === nextSession.humanRequestStatus
-          ) {
+          if (current && nextSession && sameSessionSnapshot(current, nextSession)) {
             return current
           }
           return nextSession
@@ -144,6 +163,7 @@ export function useChat(customerId: string | null) {
       setTransferNotice(response.transferNotice ?? null)
       setTransfers(response.transfers ?? [])
       setResumed(true)
+      startingFreshRef.current = false
       setSession({
         id: response.sessionId,
         protocol: response.protocol,
@@ -161,6 +181,8 @@ export function useChat(customerId: string | null) {
         departmentChanged: response.departmentChanged,
         context: response.context,
         transfers: response.transfers ?? [],
+        canRate: false,
+        rating: null,
       })
     } catch (err) {
       setError(getErrorMessage(err))
@@ -256,6 +278,7 @@ export function useChat(customerId: string | null) {
   }
 
   const startNewAttendance = () => {
+    startingFreshRef.current = true
     setSession(null)
     setMessages([])
     setHandoff(null)
@@ -264,6 +287,33 @@ export function useChat(customerId: string | null) {
     setTransferNotice(null)
     setResumed(false)
     setError(null)
+    setRatingError(null)
+  }
+
+  const submitRating = async (score: number, comment: string) => {
+    if (!session || ratingSubmitting) return
+    setRatingSubmitting(true)
+    setRatingError(null)
+    try {
+      const result = await apiClient.submitServiceRating(session.id, score, comment)
+      const submitted: ServiceRatingDto | null = result.rating ?? {
+        id: session.id,
+        sessionId: session.id,
+        score,
+        comment: comment.trim() || null,
+        createdAt: new Date().toISOString(),
+      }
+      setSession({
+        ...session,
+        canRate: false,
+        rating: submitted,
+      })
+      setTransferNotice(result.message)
+    } catch (err) {
+      setRatingError(getErrorMessage(err))
+    } finally {
+      setRatingSubmitting(false)
+    }
   }
 
   const telegram = channels.find((item) => item.channel === 'Telegram')
@@ -285,6 +335,8 @@ export function useChat(customerId: string | null) {
     linking,
     unlinking,
     error,
+    ratingError,
+    ratingSubmitting,
     sendMessage,
     changeDepartment,
     requestHandoff,
@@ -292,6 +344,7 @@ export function useChat(customerId: string | null) {
     disconnectTelegram,
     continueAttendance,
     startNewAttendance,
+    submitRating,
     reload: load,
   }
 }

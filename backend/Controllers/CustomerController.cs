@@ -13,11 +13,16 @@ public class CustomerController : ControllerBase
 {
     private readonly IChannelIdentityService _identities;
     private readonly IConversationService _conversations;
+    private readonly IServiceRatingService _ratings;
 
-    public CustomerController(IChannelIdentityService identities, IConversationService conversations)
+    public CustomerController(
+        IChannelIdentityService identities,
+        IConversationService conversations,
+        IServiceRatingService ratings)
     {
         _identities = identities;
         _conversations = conversations;
+        _ratings = ratings;
     }
 
     [HttpGet("channels")]
@@ -72,5 +77,18 @@ public class CustomerController : ControllerBase
             },
             cancellationToken);
         return Ok(response);
+    }
+
+    [HttpPost("sessions/{sessionId:guid}/rating")]
+    [ProducesResponseType(typeof(SubmitServiceRatingResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SubmitRating(
+        Guid sessionId,
+        [FromBody] SubmitServiceRatingRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _ratings.SubmitAsync(User.GetCustomerId(), sessionId, request, cancellationToken));
     }
 }
