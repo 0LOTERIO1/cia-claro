@@ -1,8 +1,11 @@
+using Cia.Api.Configuration;
 using Cia.Api.DTOs;
 using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Exceptions;
 using Cia.Api.Interfaces;
+using Cia.Api.Services.Understanding;
+using Microsoft.Extensions.Options;
 
 namespace Cia.Api.Services;
 
@@ -12,11 +15,12 @@ public class ConversationService : IConversationService
     private readonly ISessionRepository _sessions;
     private readonly IMessageRepository _messages;
     private readonly IContextService _contextService;
-    private readonly IIntentService _intentService;
+    private readonly IConversationUnderstandingService _understanding;
     private readonly IAiService _aiService;
     private readonly IHandoffService _handoffService;
     private readonly IProtocolService _protocolService;
     private readonly IOrchestrationService _orchestration;
+    private readonly AiOptions _aiOptions;
     private readonly ILogger<ConversationService> _logger;
 
     public ConversationService(
@@ -24,22 +28,24 @@ public class ConversationService : IConversationService
         ISessionRepository sessions,
         IMessageRepository messages,
         IContextService contextService,
-        IIntentService intentService,
+        IConversationUnderstandingService understanding,
         IAiService aiService,
         IHandoffService handoffService,
         IProtocolService protocolService,
         IOrchestrationService orchestration,
+        IOptions<AiOptions> aiOptions,
         ILogger<ConversationService> logger)
     {
         _customers = customers;
         _sessions = sessions;
         _messages = messages;
         _contextService = contextService;
-        _intentService = intentService;
+        _understanding = understanding;
         _aiService = aiService;
         _handoffService = handoffService;
         _protocolService = protocolService;
         _orchestration = orchestration;
+        _aiOptions = aiOptions.Value;
         _logger = logger;
     }
 
@@ -75,13 +81,34 @@ public class ConversationService : IConversationService
             return await BuildResponseAsync(session, context, restored: false, transferred: false, handoff: null, cancellationToken);
         }
 
-        var intent = _intentService.Detect(request.Content);
+        var history = await _messages.GetBySessionIdAsync(session.Id, cancellationToken);
+        var recent = history
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(_aiOptions.EffectiveShortTermMessageCount)
+            .OrderBy(m => m.CreatedAt)
+            .ToList();
+        var memory = ContextMemory.Read(context);
+        var understanding = await _understanding.UnderstandAsync(
+            BuildUnderstandingRequest(request, customer, session, context, recent, memory),
+            cancellationToken);
+
+        var intent = understanding.PrimaryIntent;
         session.DetectedIntent = intent;
-        _logger.LogInformation("Intent detected. Protocol={Protocol} Intent={Intent}", session.Protocol, intent);
+        _logger.LogInformation(
+            "Intent detected. Protocol={Protocol} Intent={Intent} Confidence={Confidence:0.00} Provider={Provider} Fallback={Fallback}",
+            session.Protocol, intent, understanding.Confidence, understanding.Provider, understanding.UsedFallback);
 
-        context = await _contextService.UpdateFromIntentAsync(context, intent, request.Content, cancellationToken);
+        context = await _contextService.ApplyUnderstandingAsync(context, understanding, request.Content, cancellationToken);
 
-        var routing = await _orchestration.RouteAsync(session, intent, context, cancellationToken);
+        var routingIntent = SelectRoutingIntent(understanding);
+        var skipRouting = understanding.ShouldAskClarification
+                          && understanding.Confidence < _aiOptions.MediumConfidence
+                          && routingIntent is IntentType.Unknown or IntentType.ContinueSupport
+                          && !understanding.ShouldEscalate;
+
+        var routing = skipRouting
+            ? new RoutingDecision { Current = session.CurrentDepartment, Previous = session.PreviousDepartment }
+            : await _orchestration.RouteAsync(session, routingIntent, context, cancellationToken);
 
         var contextRestored = routing.Transferred ||
                               (intent == IntentType.ContinueSupport &&
@@ -90,8 +117,8 @@ public class ConversationService : IConversationService
         if (routing.Transferred)
         {
             _logger.LogInformation(
-                "Context transferred. Protocol={Protocol} From={From} To={To} IssueType={IssueType} ModemRestarted={ModemRestarted}",
-                session.Protocol, routing.Previous, routing.Current, context.IssueType, context.ModemRestarted);
+                "Context transferred. Protocol={Protocol} From={From} To={To} IssueType={IssueType} ModemRestarted={ModemRestarted} Orchestration={Intent}",
+                session.Protocol, routing.Previous, routing.Current, context.IssueType, context.ModemRestarted, routingIntent);
         }
 
         if (contextRestored && !routing.Transferred)
@@ -106,7 +133,18 @@ public class ConversationService : IConversationService
             context,
             customer,
             session,
-            cancellationToken);
+            cancellationToken,
+            recent,
+            understanding);
+
+        memory = ContextMemory.Read(context);
+        memory.LastResponseSuggestion = reply.Length <= 500 ? reply : reply[..500];
+        if (reply.Contains('?', StringComparison.Ordinal))
+        {
+            ContextMemory.RememberQuestion(memory, reply);
+        }
+
+        ContextMemory.Write(context, memory);
 
         var assistantMessage = new Message
         {
@@ -124,7 +162,7 @@ public class ConversationService : IConversationService
         await _sessions.SaveChangesAsync(cancellationToken);
 
         HandoffDto? handoff = null;
-        if (intent == IntentType.HumanHandoff)
+        if (intent == IntentType.HumanHandoff || understanding.ShouldEscalate)
         {
             handoff = await _handoffService.CreateHandoffAsync(session.Id, cancellationToken);
         }
@@ -136,6 +174,71 @@ public class ConversationService : IConversationService
             routing.Transferred,
             handoff,
             cancellationToken);
+    }
+
+    private static ConversationUnderstandingRequest BuildUnderstandingRequest(
+        SendMessageRequest request,
+        Customer customer,
+        ConversationSession session,
+        ConversationContext context,
+        IReadOnlyList<Message> recent,
+        ContextMemoryPayload memory)
+    {
+        return new ConversationUnderstandingRequest
+        {
+            CurrentMessage = request.Content.Trim(),
+            RecentMessages = recent.Select(m => new RecentConversationMessage
+            {
+                Sender = m.Sender,
+                Content = m.Content
+            }).ToList(),
+            Channel = request.Channel,
+            CurrentDepartment = session.CurrentDepartment,
+            SessionStatus = session.Status,
+            LastDetectedIntent = session.DetectedIntent,
+            ContextSummary = context.ContextSummary,
+            ImportantFacts = context.ImportantFacts,
+            CurrentRequest = context.CurrentRequest,
+            OriginalProblem = context.OriginalProblem,
+            TroubleshootingPerformed = context.TroubleshootingPerformed,
+            IssueType = context.IssueType,
+            ModemRestarted = context.ModemRestarted,
+            InternetStillDown = context.InternetStillDown,
+            KnownFacts = memory.KnownFacts,
+            Inferences = memory.Inferences,
+            AskedQuestions = memory.AskedQuestions,
+            LastAssistantQuestion = memory.LastAssistantQuestion
+                ?? recent.LastOrDefault(m => m.Sender == MessageSender.Assistant)?.Content,
+            CustomerName = customer.Name,
+            CustomerId = customer.Id,
+            Protocol = session.Protocol
+        };
+    }
+
+    private static IntentType SelectRoutingIntent(ConversationUnderstandingResult understanding)
+    {
+        var intents = understanding.AllIntents.ToList();
+        if (understanding.ShouldEscalate || intents.Contains(IntentType.HumanHandoff))
+        {
+            return IntentType.HumanHandoff;
+        }
+
+        if (intents.Contains(IntentType.BillingQuestion))
+        {
+            return IntentType.BillingQuestion;
+        }
+
+        if (intents.Contains(IntentType.ModemReplacement))
+        {
+            return IntentType.ModemReplacement;
+        }
+
+        if (intents.Contains(IntentType.ModemRestarted))
+        {
+            return IntentType.ModemRestarted;
+        }
+
+        return understanding.PrimaryIntent;
     }
 
     private async Task<SendMessageResponse> BuildResponseAsync(

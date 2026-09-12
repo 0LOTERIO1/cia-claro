@@ -3,6 +3,7 @@ using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Exceptions;
 using Cia.Api.Interfaces;
+using Cia.Api.Services.Understanding;
 
 namespace Cia.Api.Services;
 
@@ -197,7 +198,9 @@ public class HumanAgentService : IHumanAgentService
                 .OrderBy(t => t.CreatedAt)
                 .Select(t => t.ToDto())
                 .ToList(),
-            Handoff = handoff?.ToDto()
+            Handoff = handoff?.ToDto(),
+            AgentBriefing = request.Session.Context?.ContextSummary,
+            ResponseSuggestion = ContextMemory.Read(request.Session.Context).LastResponseSuggestion
         };
     }
 

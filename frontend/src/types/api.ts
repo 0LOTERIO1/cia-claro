@@ -207,4 +207,6 @@ export interface AgentSessionDetailDto {
   messages: MessageDto[]
   transfers: TransferDto[]
   handoff?: HandoffDto | null
+  agentBriefing?: string | null
+  responseSuggestion?: string | null
 }

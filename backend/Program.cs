@@ -6,6 +6,8 @@ using Cia.Api.Interfaces;
 using Cia.Api.Middleware;
 using Cia.Api.Repositories;
 using Cia.Api.Services;
+using Cia.Api.Services.Knowledge;
+using Cia.Api.Services.Understanding;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -133,6 +135,9 @@ builder.Services.AddScoped<IChannelLinkCodeRepository, ChannelLinkCodeRepository
 
 builder.Services.AddScoped<IIntentService, IntentService>();
 builder.Services.AddScoped<IContextService, ContextService>();
+builder.Services.AddScoped<IKnowledgeService, LocalKnowledgeService>();
+builder.Services.AddScoped<ConversationGuardrails>();
+builder.Services.AddScoped<IConversationUnderstandingService, ConversationUnderstandingService>();
 builder.Services.AddScoped<IProtocolService, ProtocolService>();
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
@@ -146,7 +151,11 @@ builder.Services.AddScoped<ITelegramInboundService, TelegramInboundService>();
 builder.Services.AddHttpClient("Telegram");
 builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<LocalFallbackAiProvider>();
-builder.Services.AddHttpClient<ExternalAiProvider>();
+builder.Services.AddHttpClient<ExternalAiProvider>((sp, client) =>
+{
+    var timeout = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value.EffectiveTimeoutSeconds;
+    client.Timeout = TimeSpan.FromSeconds(timeout + 2);
+});
 
 builder.Services.AddScoped<IAiProvider>(sp =>
 {

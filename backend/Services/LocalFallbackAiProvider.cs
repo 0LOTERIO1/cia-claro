@@ -1,6 +1,8 @@
+using Cia.Api.DTOs;
 using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Interfaces;
+using Cia.Api.Services.Understanding;
 
 namespace Cia.Api.Services;
 
@@ -18,14 +20,50 @@ public class LocalFallbackAiProvider : IAiProvider
         return Task.FromResult(_intentService.Detect(message));
     }
 
+    public Task<ConversationUnderstandingResult> UnderstandAsync(
+        ConversationUnderstandingRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var analysis = IntentRuleEngine.Analyze(request);
+        var result = new ConversationUnderstandingResult
+        {
+            PrimaryIntent = analysis.PrimaryIntent,
+            SecondaryIntents = analysis.SecondaryIntents.ToList(),
+            Confidence = analysis.Confidence,
+            UserMeaning = analysis.UserMeaning,
+            SuggestedDepartment = SuggestDepartment(analysis.PrimaryIntent, analysis.SecondaryIntents, request),
+            ExtractedFacts = analysis.ExtractedFacts,
+            KnownFacts = analysis.KnownFacts,
+            Inferences = analysis.Inferences,
+            ContextUpdates = analysis.ContextUpdates,
+            MissingInformation = analysis.MissingInformation,
+            ShouldAskClarification = analysis.ShouldAskClarification,
+            ClarificationQuestion = analysis.ClarificationQuestion,
+            ShouldEscalate = analysis.ShouldEscalate,
+            EscalationReason = analysis.EscalationReason,
+            TopicChanged = analysis.TopicChanged,
+            SentimentOrUrgency = analysis.SentimentOrUrgency,
+            Provider = nameof(LocalFallbackAiProvider)
+        };
+
+        return Task.FromResult(result);
+    }
+
     public Task<string> GenerateResponseAsync(
         string message,
         IntentType intent,
         ConversationContext context,
         Customer customer,
         ConversationSession session,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<Message>? recentMessages = null,
+        ConversationUnderstandingResult? understanding = null)
     {
+        if (understanding?.ShouldAskClarification == true && !string.IsNullOrWhiteSpace(understanding.ClarificationQuestion))
+        {
+            return Task.FromResult(understanding.ClarificationQuestion);
+        }
+
         if (context.ModemRestarted && LooksLikeModemRestartQuestion(message))
         {
             return Task.FromResult(
@@ -43,7 +81,7 @@ public class LocalFallbackAiProvider : IAiProvider
             IntentType.ContinueSupport => BuildContinueResponse(context, session),
             IntentType.HumanHandoff =>
                 "Vou colocar você na fila de atendimento humano com o histórico completo desta jornada. Um funcionário da Claro assumirá este protocolo em instantes.",
-            _ => BuildDefaultResponse(context, session)
+            _ => BuildDefaultResponse(context, session, understanding)
         };
 
         return Task.FromResult(response);
@@ -91,6 +129,35 @@ public class LocalFallbackAiProvider : IAiProvider
         return Task.FromResult(summary.Trim());
     }
 
+    private static DepartmentType? SuggestDepartment(
+        IntentType primary,
+        IReadOnlyList<IntentType> secondary,
+        ConversationUnderstandingRequest request)
+    {
+        var intents = new[] { primary }.Concat(secondary);
+        if (intents.Contains(IntentType.HumanHandoff))
+        {
+            return DepartmentType.HumanAgent;
+        }
+
+        if (intents.Contains(IntentType.BillingQuestion))
+        {
+            return DepartmentType.Financial;
+        }
+
+        if (intents.Contains(IntentType.ModemReplacement) || (primary == IntentType.ModemRestarted && request.ModemRestarted))
+        {
+            return DepartmentType.ModemReplacement;
+        }
+
+        if (primary == IntentType.InternetProblem && request.CurrentDepartment == DepartmentType.Triage)
+        {
+            return DepartmentType.TechnicalSupport;
+        }
+
+        return null;
+    }
+
     private static string BuildInternetResponse(ConversationContext context, ConversationSession session)
     {
         if (context.ModemRestarted)
@@ -100,10 +167,10 @@ public class LocalFallbackAiProvider : IAiProvider
 
         if (session.CurrentDepartment == DepartmentType.TechnicalSupport)
         {
-            return "Entendi. Vou direcionar seu atendimento para o suporte técnico e manter as informações que você já forneceu. Você já reiniciou o modem?";
+            return "Vou direcionar seu atendimento para o suporte técnico e manter as informações que você já forneceu. Você já reiniciou o modem?";
         }
 
-        return "Entendi. Vou direcionar seu atendimento para o suporte técnico e manter as informações que você já forneceu.";
+        return "Vou direcionar seu atendimento para o suporte técnico e manter as informações que você já forneceu.";
     }
 
     private static string BuildModemRestartedResponse(ConversationContext context, ConversationSession session)
@@ -113,7 +180,7 @@ public class LocalFallbackAiProvider : IAiProvider
             return "Vi que sua internet continua sem funcionar mesmo após a reinicialização do modem. Vou continuar seu atendimento verificando a possibilidade de substituição do equipamento.";
         }
 
-        return "Entendido. Registrei que o modem já foi reiniciado e o problema continua.";
+        return "Registrei que o modem já foi reiniciado e o problema continua.";
     }
 
     private static string BuildModemReplacementResponse(ConversationContext context)
@@ -140,25 +207,38 @@ public class LocalFallbackAiProvider : IAiProvider
         var area = DepartmentNames.Format(session.CurrentDepartment);
         if (context.IssueType == IssueType.InternetConnection && context.ModemRestarted)
         {
-            return $"Claro. Continuando em {area}: você estava tratando de uma falha na internet residencial e já realizou a reinicialização do modem. Vamos seguir a partir daqui.";
+            return $"Continuando em {area}: você estava tratando de uma falha na internet residencial e já realizou a reinicialização do modem. Vamos seguir a partir daqui.";
         }
 
         if (context.IssueType == IssueType.InternetConnection)
         {
-            return $"Claro. Continuando em {area}: identifiquei que o problema original é a internet residencial. Você não precisa repetir essas informações.";
+            return $"Continuando em {area}: identifiquei que o problema original é a internet residencial. Você não precisa repetir essas informações.";
         }
 
-        return $"Claro. Recuperei o contexto da sessão e vamos continuar em {area}.";
+        return $"Recuperei o contexto da sessão e vamos continuar em {area}.";
     }
 
-    private static string BuildDefaultResponse(ConversationContext context, ConversationSession session)
+    private static string BuildDefaultResponse(
+        ConversationContext context,
+        ConversationSession session,
+        ConversationUnderstandingResult? understanding)
     {
         if (context.ModemRestarted)
         {
             return $"Estou no {DepartmentNames.Format(session.CurrentDepartment)} com o histórico já registrado. O modem já foi reiniciado e a internet continuou sem funcionar. Como posso seguir?";
         }
 
-        return "Recebi sua mensagem. Pode me contar um pouco mais para eu continuar o atendimento?";
+        if (understanding?.ShouldAskClarification == true && !string.IsNullOrWhiteSpace(understanding.ClarificationQuestion))
+        {
+            return understanding.ClarificationQuestion;
+        }
+
+        if (context.IssueType == IssueType.InternetConnection)
+        {
+            return "Como a tentativa anterior ainda está no histórico, me diga se a conexão voltou ou se o modem continua sem sinal.";
+        }
+
+        return "Você está falando de conexão, de um equipamento ou de uma cobrança?";
     }
 
     private static string BuildJourney(ConversationSession session)
@@ -183,8 +263,8 @@ public class LocalFallbackAiProvider : IAiProvider
 
     private static bool LooksLikeModemRestartQuestion(string message)
     {
-        var text = message.ToLowerInvariant();
-        return text.Contains("já tentou reiniciar", StringComparison.Ordinal)
-            || text.Contains("ja tentou reiniciar", StringComparison.Ordinal);
+        var text = TextNormalizer.Normalize(message);
+        return text.Contains("ja tentou reiniciar", StringComparison.Ordinal)
+            || text.Contains("ja reiniciou o modem", StringComparison.Ordinal);
     }
 }

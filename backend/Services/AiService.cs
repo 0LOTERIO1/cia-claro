@@ -1,8 +1,9 @@
-using Cia.Api.Configuration;
+using Cia.Api.DTOs;
 using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Interfaces;
 using Microsoft.Extensions.Options;
+using Cia.Api.Configuration;
 
 namespace Cia.Api.Services;
 
@@ -24,9 +25,12 @@ public class AiService : IAiService
         ConversationContext context,
         Customer customer,
         ConversationSession session,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<Message>? recentMessages = null,
+        ConversationUnderstandingResult? understanding = null)
     {
-        return _provider.GenerateResponseAsync(message, intent, context, customer, session, cancellationToken);
+        return _provider.GenerateResponseAsync(
+            message, intent, context, customer, session, cancellationToken, recentMessages, understanding);
     }
 
     public Task<string> GenerateHandoffSummaryAsync(

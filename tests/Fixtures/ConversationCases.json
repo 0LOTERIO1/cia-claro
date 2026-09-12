@@ -1,0 +1,160 @@
+{
+  "cases": [
+    {
+      "id": "short-affirmation-after-question",
+      "message": "sim",
+      "history": [
+        { "sender": "Customer", "content": "Minha internet nao esta funcionando" },
+        { "sender": "Assistant", "content": "Você já reiniciou o modem?" }
+      ],
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": false,
+        "currentRequest": "Falha de conexão de internet",
+        "lastAssistantQuestion": "Você já reiniciou o modem?"
+      },
+      "expect": {
+        "primaryIntent": "ModemRestarted",
+        "knownFactKeys": ["modem_restart_attempted"],
+        "shouldAskClarification": false
+      }
+    },
+    {
+      "id": "implicit-already-done",
+      "message": "ja fiz isso",
+      "history": [
+        { "sender": "Assistant", "content": "Você já reiniciou o modem?" }
+      ],
+      "context": {
+        "issueType": "InternetConnection",
+        "lastAssistantQuestion": "Você já reiniciou o modem?"
+      },
+      "expect": {
+        "primaryIntent": "ModemRestarted",
+        "knownFactKeys": ["modem_restart_attempted"]
+      }
+    },
+    {
+      "id": "negation-persistence",
+      "message": "n resolveu",
+      "history": [
+        { "sender": "Assistant", "content": "Você já reiniciou o modem?" }
+      ],
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": true,
+        "internetStillDown": true
+      },
+      "expect": {
+        "knownFactKeys": ["issue_persists"],
+        "shouldAskClarification": false
+      }
+    },
+    {
+      "id": "typo-and-slang",
+      "message": "mano minha net morreu",
+      "expect": {
+        "primaryIntent": "InternetProblem"
+      }
+    },
+    {
+      "id": "abbreviation-ok",
+      "message": "blz",
+      "history": [
+        { "sender": "Assistant", "content": "Você já reiniciou o modem?" }
+      ],
+      "context": {
+        "issueType": "InternetConnection",
+        "lastAssistantQuestion": "Você já reiniciou o modem?"
+      },
+      "expect": {
+        "primaryIntent": "ModemRestarted"
+      }
+    },
+    {
+      "id": "ambiguous-reference",
+      "message": "isso",
+      "context": {
+        "issueType": "InternetConnection",
+        "currentRequest": "Dúvida sobre cobrança da troca de equipamento",
+        "knownFacts": { "billing_question": "true" }
+      },
+      "expect": {
+        "shouldAskClarification": true
+      }
+    },
+    {
+      "id": "topic-change-billing",
+      "message": "tambem queria entender minha fatura",
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": true,
+        "lastDetectedIntent": "InternetProblem",
+        "currentRequest": "Falha de conexão de internet"
+      },
+      "expect": {
+        "primaryIntent": "BillingQuestion",
+        "topicChanged": true
+      }
+    },
+    {
+      "id": "dual-intent",
+      "message": "Minha internet continua fora e queria saber se a troca e cobrada.",
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": true
+      },
+      "expect": {
+        "anyOfPrimary": ["InternetProblem", "BillingQuestion"],
+        "mustIncludeIntents": ["InternetProblem", "BillingQuestion"]
+      }
+    },
+    {
+      "id": "history-reference",
+      "message": "como te falei ontem continua igual",
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": true,
+        "internetStillDown": true,
+        "contextSummary": "Cliente iniciou atendimento por falta de internet."
+      },
+      "expect": {
+        "knownFactKeys": ["issue_persists"],
+        "shouldAskClarification": false
+      }
+    },
+    {
+      "id": "cost-question-after-replacement",
+      "message": "quanto vai ficar essa troca?",
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": true,
+        "currentRequest": "Avaliação de substituição do modem",
+        "knownFacts": { "replacement_requested": "true" }
+      },
+      "expect": {
+        "primaryIntent": "BillingQuestion"
+      }
+    },
+    {
+      "id": "human-handoff-natural",
+      "message": "nao quero trocar, quero falar com alguem",
+      "context": {
+        "issueType": "InternetConnection",
+        "modemRestarted": true
+      },
+      "expect": {
+        "primaryIntent": "HumanHandoff",
+        "shouldEscalate": true
+      }
+    },
+    {
+      "id": "unknown-needs-clarification",
+      "message": "asdf qwer",
+      "expect": {
+        "primaryIntent": "Unknown",
+        "shouldAskClarification": true
+      }
+    }
+  ]
+}

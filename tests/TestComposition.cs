@@ -4,8 +4,11 @@ using Cia.Api.Enums;
 using Cia.Api.Interfaces;
 using Cia.Api.Repositories;
 using Cia.Api.Services;
+using Cia.Api.Services.Knowledge;
+using Cia.Api.Services.Understanding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Cia.Api.Tests;
 
@@ -53,11 +56,15 @@ internal static class TestComposition
         IIntentService intent = new IntentService();
         IContextService contextService = new ContextService(contexts, sessions, NullLogger<ContextService>.Instance);
         IOrchestrationService orchestration = new OrchestrationService(transfers, sessions, NullLogger<OrchestrationService>.Instance);
-        IAiProvider provider = new LocalFallbackAiProvider(intent);
-        IAiService ai = new AiService(
-            provider,
-            Microsoft.Extensions.Options.Options.Create(new Cia.Api.Configuration.AiOptions()),
-            NullLogger<AiService>.Instance);
+        var fallbackProvider = new LocalFallbackAiProvider(intent);
+        var aiOptions = Options.Create(new Cia.Api.Configuration.AiOptions());
+        var guardrails = new ConversationGuardrails(new LocalKnowledgeService(), aiOptions);
+        IAiService ai = new AiService(fallbackProvider, aiOptions, NullLogger<AiService>.Instance);
+        IConversationUnderstandingService understanding = new ConversationUnderstandingService(
+            fallbackProvider,
+            fallbackProvider,
+            guardrails,
+            NullLogger<ConversationUnderstandingService>.Instance);
         IProtocolService protocol = new ProtocolService(sessions);
         var handoff = new HandoffService(
             sessions,
@@ -81,14 +88,26 @@ internal static class TestComposition
             sessions,
             messages,
             contextService,
-            intent,
+            understanding,
             ai,
             handoff,
             protocol,
             orchestration,
+            aiOptions,
             NullLogger<ConversationService>.Instance);
 
         return (conversation, handoff, humanAgent, db);
+    }
+
+    public static ConversationUnderstandingService CreateUnderstanding(IAiProvider? provider = null)
+    {
+        var fallback = provider as LocalFallbackAiProvider ?? new LocalFallbackAiProvider(new IntentService());
+        var aiOptions = Options.Create(new Cia.Api.Configuration.AiOptions());
+        return new ConversationUnderstandingService(
+            provider ?? fallback,
+            fallback,
+            new ConversationGuardrails(new LocalKnowledgeService(), aiOptions),
+            NullLogger<ConversationUnderstandingService>.Instance);
     }
 
     public static ChannelIdentityService CreateIdentities(AppDbContext db)

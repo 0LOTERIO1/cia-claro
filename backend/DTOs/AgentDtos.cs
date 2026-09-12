@@ -58,6 +58,8 @@ public class AgentSessionDetailDto
     public IReadOnlyList<MessageDto> Messages { get; set; } = Array.Empty<MessageDto>();
     public IReadOnlyList<TransferDto> Transfers { get; set; } = Array.Empty<TransferDto>();
     public HandoffDto? Handoff { get; set; }
+    public string? AgentBriefing { get; set; }
+    public string? ResponseSuggestion { get; set; }
 }
 
 public class AgentMessageRequest

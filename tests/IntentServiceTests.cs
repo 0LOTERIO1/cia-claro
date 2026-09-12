@@ -16,6 +16,8 @@ public class IntentServiceTests
     [InlineData("Quero falar com um atendente.", IntentType.HumanHandoff)]
     [InlineData("Olá", IntentType.Greeting)]
     [InlineData("abc xyz", IntentType.Unknown)]
+    [InlineData("mano minha net morreu", IntentType.InternetProblem)]
+    [InlineData("quero falar com alguem", IntentType.HumanHandoff)]
     public void Detect_ReturnsExpectedIntent(string message, IntentType expected)
     {
         Assert.Equal(expected, _service.Detect(message));

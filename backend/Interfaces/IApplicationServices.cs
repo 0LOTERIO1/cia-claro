@@ -18,6 +18,18 @@ public interface IContextService
 {
     Task<ConversationContext> GetOrCreateAsync(Guid sessionId, CancellationToken cancellationToken = default);
     Task<ConversationContext> UpdateFromIntentAsync(ConversationContext context, IntentType intent, string message, CancellationToken cancellationToken = default);
+    Task<ConversationContext> ApplyUnderstandingAsync(
+        ConversationContext context,
+        ConversationUnderstandingResult understanding,
+        string message,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IConversationUnderstandingService
+{
+    Task<ConversationUnderstandingResult> UnderstandAsync(
+        ConversationUnderstandingRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IIntentService
@@ -33,7 +45,9 @@ public interface IAiService
         ConversationContext context,
         Customer customer,
         ConversationSession session,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<Message>? recentMessages = null,
+        ConversationUnderstandingResult? understanding = null);
 
     Task<string> GenerateHandoffSummaryAsync(
         Customer customer,
@@ -47,13 +61,19 @@ public interface IAiProvider
 {
     Task<IntentType> AnalyzeIntentAsync(string message, CancellationToken cancellationToken = default);
 
+    Task<ConversationUnderstandingResult> UnderstandAsync(
+        ConversationUnderstandingRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<string> GenerateResponseAsync(
         string message,
         IntentType intent,
         ConversationContext context,
         Customer customer,
         ConversationSession session,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<Message>? recentMessages = null,
+        ConversationUnderstandingResult? understanding = null);
 
     Task<string> GenerateHandoffSummaryAsync(
         Customer customer,

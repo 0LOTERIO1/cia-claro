@@ -21,8 +21,12 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\backend\Cia.Api.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\backend\Cia.Api.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="Fixtures\ConversationCases.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 
 </Project>

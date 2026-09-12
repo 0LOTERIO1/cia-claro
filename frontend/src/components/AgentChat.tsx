@@ -59,6 +59,17 @@ export function AgentChat({ detail, sending, onSend, onFinish }: Props) {
         </section>
         <JourneyTimeline current={detail.session.currentDepartment} transfers={detail.transfers} />
         <HandoffSummary handoff={detail.handoff ?? null} />
+        {(detail.agentBriefing || detail.responseSuggestion) && (
+          <section className="panel">
+            <h2>Apoio da CIA</h2>
+            {detail.agentBriefing && <p>{detail.agentBriefing}</p>}
+            {detail.responseSuggestion && (
+              <p>
+                <strong>Sugestão (não enviada):</strong> {detail.responseSuggestion}
+              </p>
+            )}
+          </section>
+        )}
         {!finished && (
           <button type="button" className="handoff-btn" onClick={onFinish}>
             Encerrar atendimento
