@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DashboardCards } from '../components/DashboardCards'
 import { SessionTable } from '../components/SessionTable'
+import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { useAuth } from '../auth/AuthContext'
 import { apiClient, getErrorMessage } from '../services/api'
 import type { DashboardDto, SessionDto } from '../types/api'
@@ -35,20 +36,21 @@ export function AdminDashboardPage() {
   }, [])
 
   return (
-    <div className="app-shell theme-app">
+    <div className="app-shell theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Operação</p>
           <h1>Dashboard administrativo</h1>
         </div>
-        <nav className="topbar-actions">
+        <nav className="topbar-actions" aria-label="Ações administrativas">
           <Link to="/agent">Fila humana</Link>
+          <AccessibilityLauncher />
           <button type="button" className="text-btn" onClick={logout}>
             Sair
           </button>
         </nav>
       </header>
-      {error && <div className="banner error">{error}</div>}
+      {error && <div className="banner error" role="alert">{error}</div>}
       {loading && <p className="empty">Carregando indicadores...</p>}
       {dashboard && <DashboardCards dashboard={dashboard} />}
       <section className="panel">

@@ -28,8 +28,12 @@ export function JourneyTimeline({ current, transfers }: Props) {
       <ol className="journey">
         {steps.map((step) => (
           <li key={step} className={step === active ? 'is-current' : 'is-done'}>
-            <span>{step === active ? '→' : '✓'}</span>
-            {formatDepartment(step)}
+            <span aria-hidden="true">{step === active ? '→' : '✓'}</span>
+            <span>
+              <span className="sr-only">{step === active ? 'Área atual: ' : 'Concluído: '}</span>
+              {formatDepartment(step)}
+              {step === active ? ' (atual)' : ''}
+            </span>
           </li>
         ))}
       </ol>

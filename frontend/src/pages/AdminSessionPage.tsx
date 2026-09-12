@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { HandoffSummary } from '../components/HandoffSummary'
 import { JourneyTimeline } from '../components/JourneyTimeline'
 import { MessageBubble } from '../components/MessageBubble'
+import { useAccessibility } from '../accessibility/AccessibilityContext'
+import { useSpeechSynthesis } from '../accessibility/useSpeechSynthesis'
 import { apiClient, getErrorMessage } from '../services/api'
 import {
   formatDateTime,
@@ -18,6 +21,9 @@ export function AdminSessionPage() {
   const { id } = useParams()
   const [detail, setDetail] = useState<AdminSessionDetailDto | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { preferences } = useAccessibility()
+  const speech = useSpeechSynthesis()
+  const [speakingId, setSpeakingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -32,17 +38,18 @@ export function AdminSessionPage() {
   }, [id])
 
   return (
-    <div className="app-shell theme-app">
+    <div className="app-shell theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Detalhe do atendimento</p>
           <h1>{detail?.session.protocol ?? 'Carregando...'}</h1>
         </div>
-        <nav className="topbar-actions">
+        <nav className="topbar-actions" aria-label="Ações administrativas">
           <Link to="/admin">Voltar ao dashboard</Link>
+          <AccessibilityLauncher />
         </nav>
       </header>
-      {error && <div className="banner error">{error}</div>}
+      {error && <div className="banner error" role="alert">{error}</div>}
       {detail && (
         <div className="layout">
           <aside>
@@ -147,9 +154,24 @@ export function AdminSessionPage() {
             <HandoffSummary handoff={detail.handoff ?? null} />
           </aside>
           <main className="chat-window">
-            <div className="chat-history">
+            <div className="chat-history" role="region" aria-label="Histórico da conversa">
               {detail.messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  readAloudEnabled={preferences.readAloudEnabled}
+                  speechSupported={speech.supported}
+                  speaking={speakingId === message.id}
+                  onSpeak={(content) => {
+                    setSpeakingId(message.id)
+                    speech.speak(content)
+                  }}
+                  onStopSpeak={() => {
+                    speech.stop()
+                    setSpeakingId(null)
+                  }}
+                  includeOwnMessages
+                />
               ))}
             </div>
           </main>

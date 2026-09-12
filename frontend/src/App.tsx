@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
+import { AccessibilityProvider } from './accessibility/AccessibilityContext'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminSessionPage } from './pages/AdminSessionPage'
@@ -11,7 +12,11 @@ import { LoginPage } from './pages/LoginPage'
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <AccessibilityProvider>
+        <a className="skip-link" href="#conteudo-principal">
+          Ir para o conteúdo
+        </a>
+        <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route
@@ -56,7 +61,8 @@ export default function App() {
           />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AccessibilityProvider>
     </AuthProvider>
   )
 }

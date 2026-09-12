@@ -16,6 +16,7 @@ import type {
   TelegramLinkCodeDto,
   ChannelUnlinkDto,
   UserDto,
+  AccessibilityPreferencesDto,
 } from '../types/api'
 
 const TOKEN_KEY = 'cia.token'
@@ -174,6 +175,14 @@ export const apiClient = {
   },
   finishRequest: async (requestId: string) => {
     const { data } = await api.post<AgentSessionDetailDto>(`/api/agent/requests/${requestId}/finish`)
+    return data
+  },
+  getAccessibilityPreferences: async () => {
+    const { data } = await api.get<AccessibilityPreferencesDto>('/api/accessibility/preferences')
+    return data
+  },
+  saveAccessibilityPreferences: async (preferences: AccessibilityPreferencesDto) => {
+    const { data } = await api.put<AccessibilityPreferencesDto>('/api/accessibility/preferences', preferences)
     return data
   },
 }

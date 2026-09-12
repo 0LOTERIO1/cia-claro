@@ -71,7 +71,7 @@ export function AgentChat({ detail, sending, onSend, onFinish }: Props) {
           </section>
         )}
         {!finished && (
-          <button type="button" className="handoff-btn" onClick={onFinish}>
+          <button type="button" className="handoff-btn" onClick={onFinish} aria-label="Encerrar atendimento">
             Encerrar atendimento
           </button>
         )}

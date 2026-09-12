@@ -13,5 +13,6 @@ public class User
     public string? CustomerId { get; set; }
 
     public Customer? Customer { get; set; }
+    public AccessibilityPreferences? AccessibilityPreferences { get; set; }
     public ICollection<HumanAgentRequest> AssignedRequests { get; set; } = new List<HumanAgentRequest>();
 }

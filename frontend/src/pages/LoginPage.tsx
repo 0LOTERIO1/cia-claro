@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { LoginForm } from '../components/LoginForm'
+import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { getErrorMessage } from '../services/api'
 import { homeForRole, useAuth } from '../auth/AuthContext'
 import type { UserRole } from '../types/api'
@@ -37,19 +38,24 @@ export function LoginPage() {
   }
 
   return (
-    <div className="app-shell theme-app">
+    <div className="app-shell theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">CIA — Claro Inteligência Artificial</p>
           <h1>Entrar na plataforma</h1>
         </div>
+        <nav className="topbar-actions" aria-label="Acessibilidade">
+          <AccessibilityLauncher />
+        </nav>
       </header>
       <section className="panel login-card">
-        <div className="profile-tabs">
+        <div className="profile-tabs" role="tablist" aria-label="Tipo de acesso">
           {PROFILES.map((item) => (
             <button
               key={item.role}
               type="button"
+              role="tab"
+              aria-selected={item.role === profile}
               className={item.role === profile ? 'is-active' : ''}
               onClick={() => {
                 setProfile(item.role)

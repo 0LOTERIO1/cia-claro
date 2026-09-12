@@ -210,3 +210,15 @@ export interface AgentSessionDetailDto {
   agentBriefing?: string | null
   responseSuggestion?: string | null
 }
+
+export type AccessibilityTheme = 'System' | 'Light' | 'Dark'
+export type ReadingSpacing = 'Normal' | 'Comfortable' | 'Expanded'
+
+export interface AccessibilityPreferencesDto {
+  fontScale: number
+  highContrast: boolean
+  theme: AccessibilityTheme
+  reducedMotion: boolean
+  readingSpacing: ReadingSpacing
+  readAloudEnabled: boolean
+}

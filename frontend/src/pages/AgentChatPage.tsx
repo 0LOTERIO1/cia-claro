@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AgentChat } from '../components/AgentChat'
+import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { useAuth } from '../auth/AuthContext'
 import { apiClient, getErrorMessage } from '../services/api'
 import { sameMessageSnapshot } from '../services/messages'
@@ -68,20 +69,21 @@ export function AgentChatPage() {
   }
 
   return (
-    <div className="app-shell theme-app">
+    <div className="app-shell theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Atendimento humano</p>
           <h1>{detail?.session.protocol ?? 'Carregando protocolo...'}</h1>
         </div>
-        <nav className="topbar-actions">
+        <nav className="topbar-actions" aria-label="Ações do atendimento">
           <Link to="/agent">Voltar à fila</Link>
+          <AccessibilityLauncher />
           <button type="button" className="text-btn" onClick={() => { logout(); navigate('/login') }}>
             Sair
           </button>
         </nav>
       </header>
-      {error && <div className="banner error">{error}</div>}
+      {error && <div className="banner error" role="alert">{error}</div>}
       {!detail && !error && <p className="empty">Carregando histórico do cliente...</p>}
       {detail && (
         <AgentChat

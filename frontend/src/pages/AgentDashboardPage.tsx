@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AgentDashboard } from '../components/AgentDashboard'
+import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { useAuth } from '../auth/AuthContext'
 import { apiClient, getErrorMessage } from '../services/api'
 import type { AgentQueueItemDto } from '../types/api'
@@ -46,21 +47,22 @@ export function AgentDashboardPage() {
   }
 
   return (
-    <div className="app-shell theme-app">
+    <div className="app-shell theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Funcionário Claro</p>
           <h1>Fila de atendimento humano</h1>
           <p className="hint">Olá, {user?.name}. Assuma um protocolo para continuar o histórico do cliente.</p>
         </div>
-        <nav className="topbar-actions">
+        <nav className="topbar-actions" aria-label="Ações do funcionário">
           {user?.role === 'Admin' && <Link to="/admin">Admin</Link>}
+          <AccessibilityLauncher />
           <button type="button" className="text-btn" onClick={logout}>
             Sair
           </button>
         </nav>
       </header>
-      {error && <div className="banner error">{error}</div>}
+      {error && <div className="banner error" role="alert">{error}</div>}
       <AgentDashboard
         waiting={waiting}
         assigned={assigned}

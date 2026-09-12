@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type UIEvent } from 'react'
+import { useAccessibility } from '../accessibility/AccessibilityContext'
+import { shouldReduceMotion } from '../accessibility/preferences'
+import { useSpeechSynthesis } from '../accessibility/useSpeechSynthesis'
 import type { MessageDto, MessageSender, SessionStatus } from '../types/api'
 import { MessageBubble } from './MessageBubble'
 
@@ -23,6 +26,13 @@ function isNearBottom(element: HTMLElement) {
   return distanceFromBottom < NEAR_BOTTOM_PX
 }
 
+function announceLabel(sender: MessageSender, selfSender: MessageSender) {
+  if (sender === selfSender) return 'Você'
+  if (sender === 'Customer') return 'Cliente'
+  if (sender === 'HumanAgent') return 'Atendente'
+  return 'CIA'
+}
+
 export function ChatWindow({
   messages,
   sending,
@@ -33,24 +43,31 @@ export function ChatWindow({
   onSend,
 }: Props) {
   const [text, setText] = useState('')
+  const [liveMessage, setLiveMessage] = useState('')
   const historyRef = useRef<HTMLDivElement>(null)
   const nearBottomRef = useRef(true)
   const lastMessageIdRef = useRef<string | undefined>(undefined)
+  const lastAnnouncedIdRef = useRef<string | undefined>(undefined)
   const pendingOwnSendRef = useRef(false)
   const locked = disabled || status === 'Resolved'
+  const { preferences } = useAccessibility()
+  const speech = useSpeechSynthesis()
+  const [speakingId, setSpeakingId] = useState<string | null>(null)
 
   const scrollHistoryToBottom = (smooth = true) => {
     const element = historyRef.current
     if (!element) return
+    const reduceMotion = shouldReduceMotion(preferences)
     element.scrollTo({
       top: element.scrollHeight,
-      behavior: smooth ? 'smooth' : 'auto',
+      behavior: smooth && !reduceMotion ? 'smooth' : 'auto',
     })
     nearBottomRef.current = true
   }
 
   useEffect(() => {
-    const lastId = messages.at(-1)?.id
+    const last = messages.at(-1)
+    const lastId = last?.id
     const hasNewMessage = lastId !== lastMessageIdRef.current
     const ownSend = pendingOwnSendRef.current
 
@@ -75,7 +92,16 @@ export function ChatWindow({
     if (nearBottomRef.current) {
       scrollHistoryToBottom()
     }
-  }, [messages])
+
+    if (last && last.sender !== selfSender && last.id !== lastAnnouncedIdRef.current) {
+      lastAnnouncedIdRef.current = last.id
+      setLiveMessage(`${announceLabel(last.sender, selfSender)}: ${last.content}`)
+    }
+  }, [messages, selfSender, preferences])
+
+  useEffect(() => {
+    if (!speech.speaking) setSpeakingId(null)
+  }, [speech.speaking])
 
   const handleHistoryScroll = (event: UIEvent<HTMLDivElement>) => {
     nearBottomRef.current = isNearBottom(event.currentTarget)
@@ -102,21 +128,41 @@ export function ChatWindow({
 
   return (
     <section className="chat-window">
+      <p className="sr-only" aria-live="polite" aria-atomic="true">
+        {liveMessage}
+      </p>
       <div
         ref={historyRef}
         className="chat-history"
-        role="log"
-        aria-live="polite"
+        role="region"
+        aria-label="Histórico da conversa"
         onScroll={handleHistoryScroll}
       >
         {messages.length === 0 && (
           <p className="empty">Envie uma mensagem para iniciar o atendimento com a CIA.</p>
         )}
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} selfSender={selfSender} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            selfSender={selfSender}
+            readAloudEnabled={preferences.readAloudEnabled}
+            speechSupported={speech.supported}
+            speaking={speakingId === message.id}
+            onSpeak={(content) => {
+              setSpeakingId(message.id)
+              speech.speak(content)
+            }}
+            onStopSpeak={() => {
+              speech.stop()
+              setSpeakingId(null)
+            }}
+          />
         ))}
         {sending && !isHumanChat(status) && selfSender === 'Customer' && (
-          <div className="typing">CIA está processando...</div>
+          <div className="typing" role="status">
+            CIA está processando...
+          </div>
         )}
       </div>
       <form className="composer" onSubmit={(event) => void submit(event)}>
@@ -129,8 +175,12 @@ export function ChatWindow({
           onChange={(event) => setText(event.target.value)}
           placeholder={inputPlaceholder}
           disabled={locked || sending}
+          aria-describedby="message-hint"
         />
-        <button type="submit" disabled={locked || sending || !text.trim()}>
+        <span id="message-hint" className="sr-only">
+          Pressione Enter para enviar
+        </span>
+        <button type="submit" disabled={locked || sending || !text.trim()} aria-label="Enviar mensagem">
           {sending ? 'Enviando...' : 'Enviar'}
         </button>
       </form>

@@ -5,6 +5,7 @@ import { JourneyTimeline } from '../components/JourneyTimeline'
 import { useAuth } from '../auth/AuthContext'
 import { useChat } from '../hooks/useChat'
 import { formatChannel, formatDateTime, formatDepartment, formatStatus } from '../services/labels'
+import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 
 export function CustomerChatPage() {
   const { user, logout } = useAuth()
@@ -21,13 +22,14 @@ export function CustomerChatPage() {
     chat.session?.currentChannel !== 'WebPortal'
 
   return (
-    <div className="app-shell theme-app">
+    <div className="app-shell theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Portal do cliente</p>
           <h1>Olá, {user?.name ?? chat.customer?.name ?? 'cliente'}</h1>
         </div>
-        <nav className="topbar-actions">
+        <nav className="topbar-actions" aria-label="Ações da conta">
+          <AccessibilityLauncher />
           <button type="button" className="text-btn" onClick={logout}>
             Sair
           </button>
@@ -35,7 +37,7 @@ export function CustomerChatPage() {
       </header>
 
       {chat.error && (
-        <div className="banner error">
+        <div className="banner error" role="alert">
           {chat.error}
           <button type="button" onClick={() => void chat.reload()}>
             Tentar novamente
@@ -44,16 +46,16 @@ export function CustomerChatPage() {
       )}
 
       {(chat.transferNotice || chat.contextRestored) && (
-        <div className="banner info">
+        <div className="banner info" role="status">
           {chat.transferNotice ?? 'Continuando seu atendimento com o contexto anterior.'}
         </div>
       )}
 
       {waiting && (
-        <div className="banner info">Aguardando um funcionário da Claro assumir este protocolo.</div>
+        <div className="banner info" role="status">Aguardando um funcionário da Claro assumir este protocolo.</div>
       )}
       {withAgent && (
-        <div className="banner info">Um atendente assumiu sua conversa. O histórico anterior foi mantido.</div>
+        <div className="banner info" role="status">Um atendente assumiu sua conversa. O histórico anterior foi mantido.</div>
       )}
 
       <div className="layout">
@@ -64,7 +66,7 @@ export function CustomerChatPage() {
               <div>
                 <strong>Telegram</strong>
                 <p className={telegramConnected ? 'ok' : 'hint'}>
-                  {telegramConnected ? 'Telegram conectado ✓' : 'Não conectado'}
+                  {telegramConnected ? 'Telegram conectado' : 'Telegram não conectado'}
                 </p>
                 {telegramConnected && chat.telegram?.displayName && (
                   <p className="hint">Nome visível: {chat.telegram.displayName}</p>

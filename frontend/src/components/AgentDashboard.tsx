@@ -22,6 +22,7 @@ export function AgentDashboard({ waiting, assigned, loading, assumingId, onAssum
         {waiting.length === 0 && <p className="empty">Nenhum cliente na fila no momento.</p>}
         {waiting.map((item) => (
           <article key={item.requestId} className="queue-card">
+            <p className="eyebrow">Aguardando atendente</p>
             <p className="eyebrow">Protocolo</p>
             <h3 className="protocol">{item.protocol}</h3>
             <dl>
@@ -46,6 +47,7 @@ export function AgentDashboard({ waiting, assigned, loading, assumingId, onAssum
               className="handoff-btn assume-btn"
               disabled={assumingId === item.requestId}
               onClick={() => onAssume(item.requestId)}
+              aria-label={`Assumir atendimento do protocolo ${item.protocol}`}
             >
               {assumingId === item.requestId ? 'Assumindo...' : 'Assumir atendimento'}
             </button>
@@ -57,6 +59,7 @@ export function AgentDashboard({ waiting, assigned, loading, assumingId, onAssum
         {assigned.length === 0 && <p className="empty">Você ainda não assumiu nenhum protocolo.</p>}
         {assigned.map((item) => (
           <article key={item.requestId} className="queue-card">
+            <p className="eyebrow">Em atendimento</p>
             <p className="protocol">{item.protocol}</p>
             <p>
               {item.customerName} — {item.problem}

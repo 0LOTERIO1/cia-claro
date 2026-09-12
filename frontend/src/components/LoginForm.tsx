@@ -20,21 +20,30 @@ export function LoginForm({ title, subtitle, submitting, error, onSubmit }: Prop
   return (
     <form className="login-form" onSubmit={(event) => void submit(event)} autoComplete="off">
       <h2>{title}</h2>
-      <p className="hint">{subtitle}</p>
-      {error && <div className="banner error">{error}</div>}
-      <label>
+      <p className="hint" id="login-subtitle">
+        {subtitle}
+      </p>
+      {error && (
+        <div className="banner error" role="alert">
+          {error}
+        </div>
+      )}
+      <label htmlFor="login-email">
         E-mail
         <input
+          id="login-email"
           type="email"
           value={email}
           autoComplete="username"
           onChange={(event) => setEmail(event.target.value)}
           required
+          aria-describedby="login-subtitle"
         />
       </label>
-      <label>
+      <label htmlFor="login-password">
         Senha
         <input
+          id="login-password"
           type="password"
           value={password}
           autoComplete="current-password"

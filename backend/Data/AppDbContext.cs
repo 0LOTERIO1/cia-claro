@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<HumanAgentRequest> HumanAgentRequests => Set<HumanAgentRequest>();
     public DbSet<CustomerChannelIdentity> CustomerChannelIdentities => Set<CustomerChannelIdentity>();
     public DbSet<ChannelLinkCode> ChannelLinkCodes => Set<ChannelLinkCode>();
+    public DbSet<AccessibilityPreferences> AccessibilityPreferences => Set<AccessibilityPreferences>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -135,6 +136,21 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.AccessibilityPreferences)
+                .WithOne(x => x.User)
+                .HasForeignKey<AccessibilityPreferences>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AccessibilityPreferences>(entity =>
+        {
+            entity.ToTable("accessibility_preferences");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.UserId).IsUnique();
+            entity.Property(x => x.FontScale).HasPrecision(4, 2);
+            entity.Property(x => x.Theme).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.ReadingSpacing).HasConversion<string>().HasMaxLength(32);
         });
 
         modelBuilder.Entity<HumanAgentRequest>(entity =>

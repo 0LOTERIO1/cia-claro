@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { SessionDto } from '../types/api'
 import { formatChannel, formatDateTime, formatDepartment, formatIntent, formatStatus } from '../services/labels'
 
@@ -7,14 +7,12 @@ interface Props {
 }
 
 export function SessionTable({ sessions }: Props) {
-  const navigate = useNavigate()
-
   if (sessions.length === 0) {
     return <p className="empty">Nenhum atendimento registrado ainda.</p>
   }
 
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0} aria-label="Tabela de atendimentos">
       <table>
         <thead>
           <tr>
@@ -30,14 +28,20 @@ export function SessionTable({ sessions }: Props) {
         </thead>
         <tbody>
           {sessions.map((session) => (
-            <tr key={session.id} onClick={() => navigate(`/admin/sessions/${session.id}`)}>
-              <td>{session.protocol}</td>
+            <tr key={session.id}>
+              <td>
+                <Link to={`/admin/sessions/${session.id}`}>{session.protocol}</Link>
+              </td>
               <td>{session.customerName}</td>
               <td>{formatChannel(session.initialChannel)}</td>
               <td>{formatChannel(session.currentChannel)}</td>
               <td>{formatDepartment(session.currentDepartment)}</td>
               <td>{formatIntent(session.detectedIntent)}</td>
-              <td>{formatStatus(session.status)}</td>
+              <td>
+                <span className={`status-text status-${session.status.toLowerCase()}`}>
+                  {formatStatus(session.status)}
+                </span>
+              </td>
               <td>{formatDateTime(session.updatedAt)}</td>
             </tr>
           ))}
