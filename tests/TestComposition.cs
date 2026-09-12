@@ -34,7 +34,8 @@ internal static class TestComposition
 
     public static (ConversationService Conversation, HandoffService Handoff, HumanAgentService HumanAgent, AppDbContext Db) CreateServices(
         AppDbContext db,
-        ITelegramService? telegram = null)
+        ITelegramService? telegram = null,
+        IAiProvider? understandingProvider = null)
     {
         ICustomerRepository customers = new CustomerRepository(db);
         ISessionRepository sessions = new SessionRepository(db);
@@ -61,7 +62,7 @@ internal static class TestComposition
         var guardrails = new ConversationGuardrails(new LocalKnowledgeService(), aiOptions);
         IAiService ai = new AiService(fallbackProvider, aiOptions, NullLogger<AiService>.Instance);
         IConversationUnderstandingService understanding = new ConversationUnderstandingService(
-            fallbackProvider,
+            understandingProvider ?? fallbackProvider,
             fallbackProvider,
             guardrails,
             NullLogger<ConversationUnderstandingService>.Instance);
@@ -145,6 +146,12 @@ internal static class TestComposition
             conversation,
             telegram,
             CreateIdentities(db),
+            new TelegramCommandHandler(
+                new SessionRepository(db),
+                conversation,
+                new MessageRepository(db),
+                telegram,
+                NullLogger<TelegramCommandHandler>.Instance),
             NullLogger<TelegramInboundService>.Instance);
     }
 

@@ -12,17 +12,20 @@ public class TelegramInboundService : ITelegramInboundService
     private readonly IConversationService _conversations;
     private readonly ITelegramService _telegram;
     private readonly IChannelIdentityService _identities;
+    private readonly TelegramCommandHandler _commands;
     private readonly ILogger<TelegramInboundService> _logger;
 
     public TelegramInboundService(
         IConversationService conversations,
         ITelegramService telegram,
         IChannelIdentityService identities,
+        TelegramCommandHandler commands,
         ILogger<TelegramInboundService> logger)
     {
         _conversations = conversations;
         _telegram = telegram;
         _identities = identities;
+        _commands = commands;
         _logger = logger;
     }
 
@@ -52,10 +55,12 @@ public class TelegramInboundService : ITelegramInboundService
 
         try
         {
-            if (TryParseLinkCommand(messageText, out var linkCode))
+            // /link precisa ocorrer ANTES de GetOrCreateTelegramCustomerAsync para adotar a identidade temporária.
+            if (TelegramCommandParser.TryParse(messageText, out var command, out var argument) &&
+                TelegramCommandParser.IsLink(command))
             {
                 stage = "link-command";
-                await HandleLinkCommandAsync(linkCode, telegramUserId, telegramChatId, firstName, cancellationToken);
+                await HandleLinkCommandAsync(argument, telegramUserId, telegramChatId, firstName, cancellationToken);
                 return;
             }
 
@@ -68,6 +73,19 @@ public class TelegramInboundService : ITelegramInboundService
             _logger.LogInformation(
                 "Telegram customer identified. CustomerId={CustomerId} Name={Name}",
                 customer.Id, customer.Name);
+
+            if (TelegramCommandParser.TryParse(messageText, out command, out _) &&
+                TelegramCommandParser.IsStart(command))
+            {
+                stage = "start-command";
+                await _commands.HandleStartAsync(
+                    customer,
+                    telegramUserId,
+                    telegramChatId,
+                    firstName,
+                    cancellationToken);
+                return;
+            }
 
             stage = "conversation";
             var response = await _conversations.SendMessageAsync(
@@ -129,20 +147,13 @@ public class TelegramInboundService : ITelegramInboundService
     public static bool TryParseLinkCommand(string text, out string code)
     {
         code = string.Empty;
-        var value = text.Trim();
-        if (!value.StartsWith("/link", StringComparison.OrdinalIgnoreCase))
+        if (!TelegramCommandParser.TryParse(text, out var command, out var argument) ||
+            !TelegramCommandParser.IsLink(command))
         {
             return false;
         }
 
-        var rest = value[5..].Trim();
-        if (rest.StartsWith('@'))
-        {
-            var space = rest.IndexOf(' ');
-            rest = space < 0 ? string.Empty : rest[(space + 1)..].Trim();
-        }
-
-        code = rest;
+        code = argument;
         return true;
     }
 

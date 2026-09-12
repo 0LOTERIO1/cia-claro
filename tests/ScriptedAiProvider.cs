@@ -10,6 +10,8 @@ internal sealed class ScriptedAiProvider : IAiProvider
 {
     private readonly LocalFallbackAiProvider _fallback = new(new Cia.Api.Services.IntentService());
 
+    public int UnderstandCalls { get; private set; }
+    public List<string> UnderstoodMessages { get; } = new();
     public Func<ConversationUnderstandingRequest, ConversationUnderstandingResult>? OnUnderstand { get; set; }
     public Exception? UnderstandException { get; set; }
 
@@ -20,6 +22,9 @@ internal sealed class ScriptedAiProvider : IAiProvider
         ConversationUnderstandingRequest request,
         CancellationToken cancellationToken = default)
     {
+        UnderstandCalls++;
+        UnderstoodMessages.Add(request.CurrentMessage);
+
         if (UnderstandException is not null)
         {
             throw UnderstandException;

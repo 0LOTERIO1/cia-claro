@@ -151,6 +151,7 @@ builder.Services.AddScoped<IHumanAgentService, HumanAgentService>();
 builder.Services.AddScoped<IChannelIdentityService, ChannelIdentityService>();
 builder.Services.AddScoped<IServiceRatingService, ServiceRatingService>();
 builder.Services.AddScoped<ITelegramService, TelegramService>();
+builder.Services.AddScoped<TelegramCommandHandler>();
 builder.Services.AddScoped<ITelegramInboundService, TelegramInboundService>();
 builder.Services.AddHttpClient("Telegram");
 builder.Services.AddScoped<IAiService, AiService>();
