@@ -15,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.SectionName));
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[]
@@ -131,6 +132,9 @@ builder.Services.AddScoped<IHandoffService, HandoffService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IHumanAgentService, HumanAgentService>();
+builder.Services.AddScoped<ITelegramService, TelegramService>();
+builder.Services.AddScoped<ITelegramInboundService, TelegramInboundService>();
+builder.Services.AddHttpClient("Telegram");
 builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<LocalFallbackAiProvider>();
 builder.Services.AddHttpClient<ExternalAiProvider>();

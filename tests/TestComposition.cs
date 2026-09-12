@@ -29,7 +29,9 @@ internal static class TestComposition
         return db;
     }
 
-    public static (ConversationService Conversation, HandoffService Handoff, HumanAgentService HumanAgent, AppDbContext Db) CreateServices(AppDbContext db)
+    public static (ConversationService Conversation, HandoffService Handoff, HumanAgentService HumanAgent, AppDbContext Db) CreateServices(
+        AppDbContext db,
+        ITelegramService? telegram = null)
     {
         ICustomerRepository customers = new CustomerRepository(db);
         ISessionRepository sessions = new SessionRepository(db);
@@ -62,6 +64,7 @@ internal static class TestComposition
             messages,
             handoffs,
             users,
+            telegram ?? new FakeTelegramService(),
             NullLogger<HumanAgentService>.Instance);
         var conversation = new ConversationService(
             customers,

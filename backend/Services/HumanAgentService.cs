@@ -13,6 +13,7 @@ public class HumanAgentService : IHumanAgentService
     private readonly IMessageRepository _messages;
     private readonly IHandoffRepository _handoffs;
     private readonly IUserRepository _users;
+    private readonly ITelegramService _telegram;
     private readonly ILogger<HumanAgentService> _logger;
 
     public HumanAgentService(
@@ -21,6 +22,7 @@ public class HumanAgentService : IHumanAgentService
         IMessageRepository messages,
         IHandoffRepository handoffs,
         IUserRepository users,
+        ITelegramService telegram,
         ILogger<HumanAgentService> logger)
     {
         _requests = requests;
@@ -28,6 +30,7 @@ public class HumanAgentService : IHumanAgentService
         _messages = messages;
         _handoffs = handoffs;
         _users = users;
+        _telegram = telegram;
         _logger = logger;
     }
 
@@ -99,6 +102,7 @@ public class HumanAgentService : IHumanAgentService
             }, cancellationToken);
 
             await _sessions.SaveChangesAsync(cancellationToken);
+            await TrySendTelegramAsync(session.Customer, welcome, cancellationToken);
             _logger.LogInformation(
                 "Human agent assumed request. Protocol={Protocol} Agent={Agent}",
                 session.Protocol, agent.Name);
@@ -149,6 +153,7 @@ public class HumanAgentService : IHumanAgentService
 
         session.UpdatedAt = DateTime.UtcNow;
         await _sessions.SaveChangesAsync(cancellationToken);
+        await TrySendTelegramAsync(session.Customer, content.Trim(), cancellationToken);
 
         var history = await _messages.GetBySessionIdAsync(session.Id, cancellationToken);
         return history.Select(m => m.ToDto()).ToList();
@@ -261,5 +266,22 @@ public class HumanAgentService : IHumanAgentService
             : string.Join(" ", facts.Take(3).Select(f => f.TrimEnd('.') + "."));
 
         return $"Olá {customerName}, vi seu histórico. {history} Vou continuar seu atendimento.";
+    }
+
+    private async Task TrySendTelegramAsync(Customer? customer, string text, CancellationToken cancellationToken)
+    {
+        if (!_telegram.IsConfigured || customer?.TelegramChatId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _telegram.SendMessageAsync(customer.TelegramChatId.Value, text, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to deliver agent message to Telegram. ChatId={ChatId}", customer.TelegramChatId);
+        }
     }
 }

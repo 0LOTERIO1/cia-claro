@@ -27,6 +27,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Id).HasMaxLength(40);
             entity.Property(x => x.Name).IsRequired().HasMaxLength(120);
             entity.Property(x => x.Phone).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.TelegramUserId);
+            entity.Property(x => x.TelegramChatId);
+            entity.HasIndex(x => x.TelegramUserId)
+                .IsUnique()
+                .HasFilter("\"TelegramUserId\" IS NOT NULL");
         });
 
         modelBuilder.Entity<ConversationSession>(entity =>

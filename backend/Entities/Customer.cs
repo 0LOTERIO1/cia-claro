@@ -6,6 +6,8 @@ public class Customer
     public string Name { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public long? TelegramUserId { get; set; }
+    public long? TelegramChatId { get; set; }
 
     public ICollection<ConversationSession> Sessions { get; set; } = new List<ConversationSession>();
 }

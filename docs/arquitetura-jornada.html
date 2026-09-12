@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>CIA — Arquitetura Final da Jornada do Cliente</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 10mm 12mm 12mm 12mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: #fff;
+      color: #1a1d24;
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      width: 273mm;
+      height: 186mm;
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .page:last-child { page-break-after: auto; }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 3px solid #e10600;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo {
+      width: 34px;
+      height: 34px;
+      background: #e10600;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .top h1 {
+      font-size: 20px;
+      line-height: 1.15;
+      font-weight: 700;
+    }
+
+    .top .kicker {
+      font-size: 11px;
+      color: #e10600;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 11px;
+      color: #5b6270;
+      line-height: 1.45;
+    }
+
+    .objective {
+      background: #f7f2f1;
+      border-left: 4px solid #e10600;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      margin-bottom: 14px;
+    }
+
+    .row { display: flex; gap: 10px; }
+    .grow { flex: 1; }
+
+    .box {
+      border: 1px solid #d8dce3;
+      border-radius: 10px;
+      background: #fff;
+      padding: 10px 11px;
+    }
+
+    .box h3 {
+      font-size: 12.5px;
+      margin-bottom: 4px;
+    }
+
+    .box p, .box li { font-size: 11.5px; color: #3b4250; line-height: 1.4; }
+
+    .num {
+      display: inline-flex;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #e10600;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      align-items: center;
+      justify-content: center;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      border: 1px solid #d8dce3;
+      border-radius: 10px;
+      padding: 10px 11px 11px;
+      min-height: 92px;
+      position: relative;
+      background: #fafbfc;
+    }
+
+    .card .n {
+      position: absolute;
+      top: -9px;
+      left: 10px;
+      background: #e10600;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card strong { display: block; font-size: 13px; margin: 4px 0 4px; }
+    .card span { font-size: 11px; color: #4a5160; line-height: 1.35; display: block; }
+
+    .center-wrap {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .orch {
+      background: #1a1d24;
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .orch h3 { color: #fff; font-size: 14px; margin-bottom: 4px; }
+    .orch p { color: #c9d0db; font-size: 12px; }
+
+    .ctx {
+      background: #fff5f4;
+      border: 1px solid #f0c7c3;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .ctx h3 { color: #e10600; font-size: 14px; margin-bottom: 4px; }
+
+    .journey-bar {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .step {
+      background: #e10600;
+      color: #fff;
+      text-align: center;
+      padding: 9px 6px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .step small {
+      display: block;
+      font-weight: 500;
+      font-size: 10px;
+      opacity: 0.9;
+      margin-top: 2px;
+    }
+
+    .arrow-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .jcard {
+      border: 1px solid #d8dce3;
+      border-radius: 10px;
+      padding: 8px 8px 10px;
+      background: #fafbfc;
+      min-height: 118px;
+    }
+
+    .jcard .badge {
+      background: #e10600;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+
+    .jcard strong { display: block; font-size: 12px; margin-bottom: 4px; }
+    .jcard p { font-size: 10.5px; color: #44505e; line-height: 1.35; }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .chip {
+      background: #1a1d24;
+      color: #fff;
+      font-size: 10.5px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .gold {
+      background: #f7f2f1;
+      border-left: 4px solid #e10600;
+      padding: 8px 12px;
+      font-size: 12.5px;
+      margin-bottom: 12px;
+    }
+
+    .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+
+    .portal {
+      border: 1px solid #d8dce3;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .portal .hd {
+      background: #e10600;
+      color: #fff;
+      padding: 8px 11px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .portal .bd { padding: 10px 11px; font-size: 11.5px; line-height: 1.4; color: #3b4250; }
+    .portal .bd b { color: #1a1d24; }
+
+    .handoff {
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr;
+      gap: 10px;
+    }
+
+    .flow5 {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 7px;
+    }
+
+    .mini {
+      background: #1a1d24;
+      color: #fff;
+      border-radius: 9px;
+      padding: 9px 8px;
+      text-align: center;
+    }
+
+    .mini .n {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #e10600; margin: 0 auto 6px;
+      font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .mini strong { display: block; font-size: 12px; margin-bottom: 3px; }
+    .mini span { font-size: 10.5px; color: #c9d0db; display: block; line-height: 1.3; }
+
+    .listbox {
+      border: 1px solid #f0c7c3;
+      background: #fff5f4;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .listbox h3 { font-size: 13px; margin-bottom: 6px; color: #e10600; }
+    .listbox li { font-size: 11.5px; margin-left: 16px; margin-bottom: 3px; color: #3b4250; }
+
+    .deploy {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .dep {
+      border-radius: 10px;
+      padding: 11px 12px;
+      color: #fff;
+    }
+
+    .dep.fe { background: #1a1d24; }
+    .dep.api { background: #e10600; }
+    .dep.db { background: #2b3340; }
+
+    .dep .lbl { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.85; }
+    .dep strong { display: block; font-size: 15px; margin: 3px 0; }
+    .dep p { font-size: 11.5px; line-height: 1.35; opacity: 0.92; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      margin-bottom: 12px;
+    }
+
+    th {
+      text-align: left;
+      background: #1a1d24;
+      color: #fff;
+      padding: 6px 8px;
+      font-weight: 600;
+    }
+
+    td {
+      border-bottom: 1px solid #e6e9ee;
+      padding: 6px 8px;
+      vertical-align: top;
+    }
+
+    td:first-child { font-weight: 700; width: 28%; color: #1a1d24; }
+
+    .nfr {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+    }
+
+    .nfr div {
+      border: 1px solid #d8dce3;
+      border-radius: 8px;
+      padding: 8px 9px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: #fafbfc;
+    }
+
+    .foot {
+      margin-top: auto;
+      padding-top: 8px;
+      border-top: 1px solid #e6e9ee;
+      display: flex;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <!-- PAGE 1 -->
+  <section class="page">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">CIA</div>
+        <div>
+          <div class="kicker">Arquitetura funcional do MVP</div>
+          <h1>CIA — Arquitetura Final da Solução Sprint 3</h1>
+        </div>
+      </div>
+      <div class="meta">
+        FIAP Challenge Sprint 3<br />
+        Projeto CIA / Claro Inteligência Artificial<br />
+        Arquitetura realmente implementada
+      </div>
+    </header>
+
+    <p class="objective">
+      <strong>Objetivo arquitetural:</strong> manter uma única jornada de atendimento, preservando contexto, protocolo, histórico e progresso quando o cliente é redirecionado entre bots, áreas e atendimento humano.
+    </p>
+
+    <div class="pipeline">
+      <article class="card">
+        <div class="n">1</div>
+        <strong>Cliente Claro</strong>
+        <span>Login autenticado e chat contínuo com a CIA, no mesmo protocolo do início ao fim.</span>
+      </article>
+      <article class="card">
+        <div class="n">2</div>
+        <strong>Frontend React</strong>
+        <span>Portal Cliente + Portal Atendente + Administração, em React / Vite / TypeScript.</span>
+      </article>
+      <article class="card">
+        <div class="n">3</div>
+        <strong>API ASP.NET Core 8</strong>
+        <span>REST, autenticação JWT, regras de negócio, DTOs e orquestração da jornada.</span>
+      </article>
+      <article class="card">
+        <div class="n">4</div>
+        <strong>Orquestrador CIA</strong>
+        <span>Decide a área responsável sem criar nova sessão. A CIA é dona do contexto.</span>
+      </article>
+    </div>
+
+    <div class="center-wrap">
+      <div class="orch">
+        <h3>CIA — camada central de orquestração</h3>
+        <p>Os bots e as áreas não são donos do histórico. A CIA identifica o cliente, classifica a intenção, atualiza o contexto compartilhado, transfere a área e gera a resposta — sempre na mesma sessão e no mesmo protocolo <em>CIA-YYYYMMDD-0001</em>.</p>
+      </div>
+      <div class="ctx">
+        <h3>C — Contexto central</h3>
+        <p>Problema original, tipo do problema, modem reiniciado, internet ainda fora, procedimentos realizados, pedido atual, fatos importantes e resumo persistido no PostgreSQL.</p>
+      </div>
+    </div>
+
+    <div class="box" style="margin-bottom:12px;">
+      <h3>Persistência — PostgreSQL + EF Core</h3>
+      <p>Sessões, mensagens (Customer / CIA / Agent), usuários, transferências de departamento, fila humana (<em>HumanAgentRequests</em>) e contexto compartilhado. Migrations incrementais, sem apagar o histórico anterior.</p>
+    </div>
+
+    <div class="journey-bar">
+      <div class="step">Triagem<small>Início da sessão</small></div>
+      <div class="step">Suporte Técnico<small>Diagnóstico</small></div>
+      <div class="step">Troca de Modem<small>Contexto herdado</small></div>
+      <div class="step">Financeiro<small>Jornada técnica completa</small></div>
+      <div class="step">Atendimento Humano<small>Fila + chat real</small></div>
+    </div>
+
+    <footer class="foot">
+      <span>CIA — Claro Inteligência Artificial</span>
+      <span>Página 1 / 4</span>
+    </footer>
+  </section>
+
+  <!-- PAGE 2 -->
+  <section class="page">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">CIA</div>
+        <div>
+          <div class="kicker">Fluxo de atendimento com contexto compartilhado</div>
+          <h1>Jornada Final do Cliente</h1>
+        </div>
+      </div>
+      <div class="meta">
+        Mesmo CustomerId · Mesma Session<br />
+        Mesmo protocolo · Histórico preservado
+      </div>
+    </header>
+
+    <p class="gold">
+      <strong>Regra de ouro:</strong> o redirecionamento muda a área responsável, mas não muda a sessão. O cliente mantém o mesmo protocolo e não repete informações já registradas.
+    </p>
+
+    <div class="arrow-row">
+      <article class="jcard">
+        <div class="badge">1</div>
+        <strong>Login do cliente</strong>
+        <p>Perfil Customer. Cliente autenticado inicia ou retoma o atendimento em <em>/</em>.</p>
+      </article>
+      <article class="jcard">
+        <div class="badge">2</div>
+        <strong>Triagem</strong>
+        <p>“Minha internet não está funcionando.” O problema original é registrado no contexto.</p>
+      </article>
+      <article class="jcard">
+        <div class="badge">3</div>
+        <strong>Suporte Técnico</strong>
+        <p>CIA pergunta apenas o que ainda não sabe. Cliente: “Já reiniciei o modem.”</p>
+      </article>
+      <article class="jcard">
+        <div class="badge">4</div>
+        <strong>Troca de Modem</strong>
+        <p>Novo bot recebe: internet fora + modem reiniciado + falha persiste. Não repregunta.</p>
+      </article>
+      <article class="jcard">
+        <div class="badge">5</div>
+        <strong>Financeiro</strong>
+        <p>“Essa troca tem cobrança?” O financeiro recebe a jornada técnica completa.</p>
+      </article>
+      <article class="jcard">
+        <div class="badge">6</div>
+        <strong>Fila humana</strong>
+        <p>“Quero falar com um atendente.” CIA gera resumo e cria solicitação <em>Waiting</em>.</p>
+      </article>
+      <article class="jcard">
+        <div class="badge">7</div>
+        <strong>Atendente Claro</strong>
+        <p>Funcionário assume o mesmo protocolo e conversa no mesmo chat, com todo o histórico.</p>
+      </article>
+    </div>
+
+    <div class="row" style="gap:10px; margin-bottom:12px;">
+      <div class="box grow">
+        <h3>O que permanece igual a cada transferência</h3>
+        <div class="chips" style="margin-top:8px;">
+          <span class="chip">Mesmo CustomerId</span>
+          <span class="chip">Mesma Session</span>
+          <span class="chip">Mesmo protocolo</span>
+          <span class="chip">Histórico preservado</span>
+          <span class="chip">Contexto persistido</span>
+          <span class="chip">Chat contínuo</span>
+        </div>
+      </div>
+      <div class="box" style="width:46%;">
+        <h3>O que muda</h3>
+        <p style="margin-top:6px;">Apenas a <strong>área responsável</strong> (<em>CurrentDepartment</em>) e o registro em <em>DepartmentTransfer</em>. Após o pedido humano, o status vai para <em>WaitingForAgent</em> e, quando o funcionário assume, para <em>Transferred</em>.</p>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3>Exemplo de continuidade (MVP)</h3>
+      <p>Protocolo <strong>CIA-YYYYMMDD-0001</strong> · Cliente Lucas (<strong>CLIENTE-001</strong>) · Triagem → Suporte Técnico → Troca de Modem → Financeiro → Fila → Ana Souza assume e continua: “Olá Lucas, vi seu histórico. Você já realizou a reinicialização do modem.”</p>
+    </div>
+
+    <footer class="foot">
+      <span>A CIA não cria nova sessão ao trocar de área</span>
+      <span>Página 2 / 4</span>
+    </footer>
+  </section>
+
+  <!-- PAGE 3 -->
+  <section class="page">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">CIA</div>
+        <div>
+          <div class="kicker">Três experiências conectadas pela mesma sessão</div>
+          <h1>Perfis, Telas e Handoff Humano</h1>
+        </div>
+      </div>
+      <div class="meta">
+        Autenticação JWT por perfil<br />
+        Customer · Agent · Admin
+      </div>
+    </header>
+
+    <div class="three">
+      <article class="portal">
+        <div class="hd">Portal do Cliente</div>
+        <div class="bd">
+          <b>Perfil:</b> Customer<br />
+          Login, nome, protocolo, área atual, histórico da conversa e chat com a CIA e com o atendente.<br />
+          <b>Rotas:</b> /login e /
+        </div>
+      </article>
+      <article class="portal">
+        <div class="hd">Portal do Atendente</div>
+        <div class="bd">
+          <b>Perfil:</b> Agent<br />
+          Fila de solicitações, resumo contextual, botão Assumir atendimento e chat com o cliente.<br />
+          <b>Rota:</b> /agent
+        </div>
+      </article>
+      <article class="portal">
+        <div class="hd">Portal de Operação</div>
+        <div class="bd">
+          <b>Perfil:</b> Admin<br />
+          Visão consolidada, sessões, jornada, contexto, histórico e transbordos.<br />
+          <b>Rota:</b> /admin
+        </div>
+      </article>
+    </div>
+
+    <h3 style="font-size:14px; margin:0 0 8px;">Handoff humano — continuidade real do atendimento</h3>
+    <div class="handoff">
+      <div class="flow5">
+        <div class="mini">
+          <div class="n">1</div>
+          <strong>Cliente</strong>
+          <span>Pede atendimento humano</span>
+        </div>
+        <div class="mini">
+          <div class="n">2</div>
+          <strong>CIA</strong>
+          <span>Gera resumo + preserva histórico</span>
+        </div>
+        <div class="mini">
+          <div class="n">3</div>
+          <strong>Fila</strong>
+          <span>Status: Waiting</span>
+        </div>
+        <div class="mini">
+          <div class="n">4</div>
+          <strong>Atendente</strong>
+          <span>Assume a sessão</span>
+        </div>
+        <div class="mini">
+          <div class="n">5</div>
+          <strong>Chat</strong>
+          <span>Cliente ↔ Atendente</span>
+        </div>
+      </div>
+      <div class="listbox">
+        <h3>O que o atendente recebe ao assumir</h3>
+        <ul>
+          <li>Cliente e protocolo</li>
+          <li>Problema original</li>
+          <li>Áreas já percorridas</li>
+          <li>Procedimentos realizados</li>
+          <li>Fatos importantes</li>
+          <li>Pedido atual</li>
+          <li>Resumo do contexto</li>
+          <li>Histórico completo de mensagens</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="box" style="margin-top:12px;">
+      <h3>Remetentes no mesmo chat</h3>
+      <p style="margin-top:4px;"><strong>Customer</strong> (cliente) · <strong>Assistant</strong> (CIA) · <strong>HumanAgent</strong> (funcionário Claro). Após a fila, a CIA deixa de responder automaticamente e o diálogo continua com o atendente no mesmo protocolo.</p>
+    </div>
+
+    <footer class="foot">
+      <span>HumanAgentRequest: Waiting → Assigned → Finished</span>
+      <span>Página 3 / 4</span>
+    </footer>
+  </section>
+
+  <!-- PAGE 4 -->
+  <section class="page">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">CIA</div>
+        <div>
+          <div class="kicker">Tecnologias e responsabilidades por camada</div>
+          <h1>Arquitetura Técnica e Implantação</h1>
+        </div>
+      </div>
+      <div class="meta">
+        Frontend na Vercel<br />
+        API + PostgreSQL no Render
+      </div>
+    </header>
+
+    <div class="deploy">
+      <div class="dep fe">
+        <div class="lbl">Frontend</div>
+        <strong>Vercel</strong>
+        <p>React + Vite + TypeScript. Portais Cliente, Agent e Admin. Variável <em>VITE_API_URL</em>.</p>
+      </div>
+      <div class="dep api">
+        <div class="lbl">API</div>
+        <strong>Render</strong>
+        <p>Docker + ASP.NET Core 8. API REST + JWT + Services. Swagger e CORS para o frontend.</p>
+      </div>
+      <div class="dep db">
+        <div class="lbl">Banco</div>
+        <strong>Render PostgreSQL</strong>
+        <p>EF Core + migrations incrementais. Persistência transacional da jornada e da fila humana.</p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Camada</th>
+          <th>Tecnologia</th>
+          <th>Responsabilidade</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Interface</td>
+          <td>React / Vite / TypeScript</td>
+          <td>Login por perfil, chat, jornada, fila, painel e dashboards.</td>
+        </tr>
+        <tr>
+          <td>API</td>
+          <td>ASP.NET Core 8 / REST</td>
+          <td>Controllers, validação, autenticação JWT e contratos DTO.</td>
+        </tr>
+        <tr>
+          <td>Negócio</td>
+          <td>Services + Orchestration</td>
+          <td>Contexto central, roteamento, IA/fallback, handoff e fila humana.</td>
+        </tr>
+        <tr>
+          <td>Dados</td>
+          <td>EF Core + PostgreSQL</td>
+          <td>Users, sessions, messages, contexts, transfers, human agent requests.</td>
+        </tr>
+        <tr>
+          <td>Qualidade</td>
+          <td>xUnit + builds</td>
+          <td>Testes de contexto, jornada, handoff e fluxo humano.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="font-size:13px; margin:0 0 7px;">Requisitos não-funcionais contemplados</h3>
+    <div class="nfr">
+      <div>Persistência real</div>
+      <div>Separação front/back</div>
+      <div>Autenticação por perfil</div>
+      <div>CORS e variáveis de ambiente</div>
+      <div>Migrations incrementais</div>
+      <div>Logs e tratamento de erros</div>
+      <div>Testes automatizados</div>
+      <div>Deploy Vercel + Render</div>
+    </div>
+
+    <footer class="foot">
+      <span>Documento de arquitetura final da jornada do cliente — Sprint 3</span>
+      <span>Página 4 / 4</span>
+    </footer>
+  </section>
+</body>
+</html>

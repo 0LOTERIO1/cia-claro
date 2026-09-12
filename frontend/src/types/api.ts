@@ -1,4 +1,4 @@
-export type ChannelType = 'AppClaro' | 'WhatsApp'
+export type ChannelType = 'AppClaro' | 'WhatsApp' | 'Telegram'
 export type DepartmentType =
   | 'Triage'
   | 'TechnicalSupport'
