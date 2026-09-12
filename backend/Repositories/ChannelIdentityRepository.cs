@@ -39,6 +39,11 @@ public class ChannelIdentityRepository : IChannelIdentityRepository
     {
         await _db.CustomerChannelIdentities.AddAsync(identity, cancellationToken);
     }
+
+    public void Remove(CustomerChannelIdentity identity)
+    {
+        _db.CustomerChannelIdentities.Remove(identity);
+    }
 }
 
 public class ChannelLinkCodeRepository : IChannelLinkCodeRepository

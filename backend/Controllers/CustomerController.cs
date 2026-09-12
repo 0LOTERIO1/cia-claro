@@ -35,6 +35,13 @@ public class CustomerController : ControllerBase
         return Ok(await _identities.GenerateTelegramLinkCodeAsync(User.GetCustomerId(), cancellationToken));
     }
 
+    [HttpDelete("channels/telegram")]
+    [ProducesResponseType(typeof(ChannelUnlinkDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UnlinkTelegram(CancellationToken cancellationToken)
+    {
+        return Ok(await _identities.UnlinkTelegramAsync(User.GetCustomerId(), cancellationToken));
+    }
+
     [HttpGet("active-session")]
     [ProducesResponseType(typeof(ActiveSessionResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetActiveSession(CancellationToken cancellationToken)

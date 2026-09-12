@@ -15,6 +15,7 @@ public interface IChannelIdentityRepository
         CancellationToken cancellationToken = default);
 
     Task AddAsync(CustomerChannelIdentity identity, CancellationToken cancellationToken = default);
+    void Remove(CustomerChannelIdentity identity);
 }
 
 public interface IChannelLinkCodeRepository

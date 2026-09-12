@@ -320,6 +320,46 @@ public class ChannelIdentityService : IChannelIdentityService
         return await GetActiveSessionAsync(customerId, cancellationToken);
     }
 
+    public async Task<ChannelUnlinkDto> UnlinkTelegramAsync(
+        string customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await _customers.GetByIdAsync(customerId, cancellationToken)
+            ?? throw new NotFoundException("Cliente não encontrado.");
+
+        var identities = await _identities.GetByCustomerIdAsync(customerId, cancellationToken);
+        var telegrams = identities
+            .Where(x => x.Channel == ChannelType.Telegram && x.CustomerId == customer.Id)
+            .ToList();
+
+        var hadLink = telegrams.Count > 0 || customer.TelegramUserId is not null || customer.TelegramChatId is not null;
+        foreach (var identity in telegrams)
+        {
+            _identities.Remove(identity);
+        }
+
+        customer.TelegramUserId = null;
+        customer.TelegramChatId = null;
+
+        var session = await _sessions.GetOpenByCustomerIdAsync(customer.Id, cancellationToken);
+        if (session is not null && session.CurrentChannel == ChannelType.Telegram)
+        {
+            session.CurrentChannel = ChannelType.WebPortal;
+            session.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _sessions.SaveChangesAsync(cancellationToken);
+        _logger.LogInformation("Telegram identity unlinked. CustomerId={CustomerId}", customer.Id);
+
+        return new ChannelUnlinkDto
+        {
+            Success = true,
+            Message = hadLink
+                ? "Telegram desconectado com sucesso."
+                : "Nenhum Telegram estava conectado."
+        };
+    }
+
     private async Task AdoptTemporaryCustomerAsync(
         string temporaryCustomerId,
         Customer portalCustomer,

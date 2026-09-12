@@ -28,4 +28,6 @@ public interface IChannelIdentityService
     Task<ActiveSessionResponse> GetActiveSessionAsync(string customerId, CancellationToken cancellationToken = default);
 
     Task<ActiveSessionResponse> ResumeActiveSessionAsync(string customerId, CancellationToken cancellationToken = default);
+
+    Task<ChannelUnlinkDto> UnlinkTelegramAsync(string customerId, CancellationToken cancellationToken = default);
 }

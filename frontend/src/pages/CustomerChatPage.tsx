@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ChatWindow } from '../components/ChatWindow'
 import { HandoffSummary } from '../components/HandoffSummary'
 import { JourneyTimeline } from '../components/JourneyTimeline'
@@ -8,6 +9,7 @@ import { formatChannel, formatDateTime, formatDepartment, formatStatus } from '.
 export function CustomerChatPage() {
   const { user, logout } = useAuth()
   const chat = useChat(user?.customerId ?? null)
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const waiting = chat.session?.status === 'WaitingForAgent'
   const withAgent = chat.session?.status === 'Transferred'
   const humanFlow = waiting || withAgent
@@ -77,6 +79,39 @@ export function CustomerChatPage() {
                 >
                   {chat.linking ? 'Gerando código...' : 'Conectar Telegram'}
                 </button>
+              )}
+              {telegramConnected && !confirmDisconnect && (
+                <button
+                  type="button"
+                  className="danger-btn"
+                  disabled={chat.unlinking}
+                  onClick={() => setConfirmDisconnect(true)}
+                >
+                  Desconectar Telegram
+                </button>
+              )}
+              {telegramConnected && confirmDisconnect && (
+                <div className="confirm-box">
+                  <p>
+                    Desconectar Telegram? O histórico dos seus atendimentos será preservado, mas este Telegram
+                    deixará de estar associado à sua conta CIA.
+                  </p>
+                  <div className="confirm-actions">
+                    <button type="button" className="text-btn" onClick={() => setConfirmDisconnect(false)}>
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="danger-btn"
+                      disabled={chat.unlinking}
+                      onClick={() => {
+                        void chat.disconnectTelegram().then(() => setConfirmDisconnect(false))
+                      }}
+                    >
+                      {chat.unlinking ? 'Desconectando...' : 'Desconectar'}
+                    </button>
+                  </div>
+                </div>
               )}
               {chat.linkCode && !telegramConnected && (
                 <div className="link-box">

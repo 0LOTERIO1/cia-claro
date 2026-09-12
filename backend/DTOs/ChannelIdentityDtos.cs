@@ -29,3 +29,9 @@ public class CustomerMessageRequest
 {
     public string Content { get; set; } = string.Empty;
 }
+
+public class ChannelUnlinkDto
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+}

@@ -41,6 +41,7 @@ export function useChat(customerId: string | null) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [linking, setLinking] = useState(false)
+  const [unlinking, setUnlinking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const applySnapshot = useCallback(
@@ -219,6 +220,24 @@ export function useChat(customerId: string | null) {
     }
   }
 
+  const disconnectTelegram = async () => {
+    if (unlinking) return
+    setUnlinking(true)
+    setError(null)
+    try {
+      const result = await apiClient.unlinkTelegram()
+      const snapshot = await apiClient.getActiveSession()
+      setChannels(snapshot.channels ?? [])
+      setLinkCode(null)
+      applySnapshot(snapshot.session ?? null, snapshot.messages ?? [], Boolean(snapshot.session))
+      setTransferNotice(result.message)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setUnlinking(false)
+    }
+  }
+
   const continueAttendance = async () => {
     if (!session || sending) return
     setSending(true)
@@ -264,11 +283,13 @@ export function useChat(customerId: string | null) {
     loading,
     sending,
     linking,
+    unlinking,
     error,
     sendMessage,
     changeDepartment,
     requestHandoff,
     connectTelegram,
+    disconnectTelegram,
     continueAttendance,
     startNewAttendance,
     reload: load,

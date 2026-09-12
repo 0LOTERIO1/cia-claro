@@ -14,6 +14,7 @@ import type {
   SendMessageResponse,
   SessionDto,
   TelegramLinkCodeDto,
+  ChannelUnlinkDto,
   UserDto,
 } from '../types/api'
 
@@ -110,6 +111,10 @@ export const apiClient = {
   },
   createTelegramLinkCode: async () => {
     const { data } = await api.post<TelegramLinkCodeDto>('/api/customer/channels/telegram/link-code')
+    return data
+  },
+  unlinkTelegram: async () => {
+    const { data } = await api.delete<ChannelUnlinkDto>('/api/customer/channels/telegram')
     return data
   },
   getActiveSession: async () => {

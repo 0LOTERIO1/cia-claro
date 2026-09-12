@@ -144,6 +144,33 @@ dd { margin: 0; font-weight: 600; }
 .from-customer .channel-badge { background: rgba(255,255,255,0.18); color: #fff; }
 .channel-status { display: grid; gap: 10px; }
 .channel-status .ok { color: #b6f3d4; margin: 4px 0 0; }
+.danger-btn {
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  border-radius: 10px;
+  background: transparent;
+  color: #e7a3a0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.danger-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.confirm-box {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 107, 107, 0.08);
+}
+.confirm-box p { margin: 0; font-size: 13px; color: #f0d4d2; }
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.confirm-actions .danger-btn,
+.confirm-actions .text-btn { width: auto; margin: 0; }
 .link-box {
   display: grid;
   gap: 8px;

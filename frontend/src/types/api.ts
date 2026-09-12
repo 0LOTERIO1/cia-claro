@@ -147,6 +147,11 @@ export interface ActiveSessionResponse {
   channels: CustomerChannelDto[]
 }
 
+export interface ChannelUnlinkDto {
+  success: boolean
+  message: string
+}
+
 export interface AdminSessionDetailDto {
   session: SessionDto
   customer: CustomerDto
