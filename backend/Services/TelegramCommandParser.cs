@@ -29,6 +29,12 @@ public static class TelegramCommandParser
 
     public static bool IsStart(string command) => command == "start";
     public static bool IsLink(string command) => command == "link";
+    public static bool IsContinue(string command) => command is "continuar" or "continue";
+    public static bool IsRestart(string command) => command is "novo";
+    public static bool IsEnd(string command) => command is "encerrar";
+
+    public static bool IsSessionLifecycle(string command)
+        => IsStart(command) || IsContinue(command) || IsRestart(command) || IsEnd(command);
 }
 
 public static class TelegramCommandActions

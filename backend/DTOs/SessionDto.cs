@@ -14,6 +14,7 @@ public class SessionDto
     public DepartmentType? PreviousDepartment { get; set; }
     public SessionStatus Status { get; set; }
     public IntentType DetectedIntent { get; set; }
+    public SessionClosureReason? ClosureReason { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool ContextRestored { get; set; }

@@ -34,6 +34,8 @@ public class DashboardService : IDashboardService
         var ratings = await _ratings.GetAllAsync(cancellationToken);
         var resolvedCount = sessions.Count(s => s.Status == SessionStatus.Resolved);
         var ratedCount = ratings.Count;
+        var rateableCount = sessions.Count(s =>
+            s.Status == SessionStatus.Resolved && SessionRules.IsCompletedClosure(s));
 
         return new DashboardDto
         {
@@ -60,9 +62,9 @@ public class DashboardService : IDashboardService
                 ? null
                 : Math.Round((decimal)ratings.Average(r => r.Score), 1, MidpointRounding.AwayFromZero),
             RatedSessions = ratedCount,
-            RatingRate = resolvedCount == 0
+            RatingRate = rateableCount == 0
                 ? 0
-                : Math.Round((decimal)ratedCount * 100m / resolvedCount, 0, MidpointRounding.AwayFromZero),
+                : Math.Round((decimal)ratedCount * 100m / rateableCount, 0, MidpointRounding.AwayFromZero),
             ScoreDistribution = Enumerable.Range(1, 5)
                 .Select(score => new StarCountDto
                 {

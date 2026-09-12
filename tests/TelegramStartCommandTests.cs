@@ -122,7 +122,9 @@ public class TelegramStartCommandTests
         Assert.DoesNotContain(scripted.UnderstoodMessages, text => text.Contains("/start", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(sessionId, db.ConversationSessions.Single().Id);
         Assert.DoesNotContain(db.Messages, m => m.Content.Contains("/start", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(TelegramCommandHandler.ActiveSessionMessage, telegram.Sent.Single().Text);
+        Assert.Equal(TelegramCommandHandler.OfferRestartMessage, telegram.Sent.Single().Text);
+        Assert.Contains("/continuar", telegram.Sent.Single().Text);
+        Assert.Contains("/novo", telegram.Sent.Single().Text);
         Assert.Equal(IntentType.InternetProblem, db.ConversationSessions.Single().DetectedIntent);
     }
 

@@ -14,15 +14,18 @@ public class CustomerController : ControllerBase
     private readonly IChannelIdentityService _identities;
     private readonly IConversationService _conversations;
     private readonly IServiceRatingService _ratings;
+    private readonly ISessionLifecycleService _lifecycle;
 
     public CustomerController(
         IChannelIdentityService identities,
         IConversationService conversations,
-        IServiceRatingService ratings)
+        IServiceRatingService ratings,
+        ISessionLifecycleService lifecycle)
     {
         _identities = identities;
         _conversations = conversations;
         _ratings = ratings;
+        _lifecycle = lifecycle;
     }
 
     [HttpGet("channels")]
@@ -90,5 +93,39 @@ public class CustomerController : ControllerBase
         CancellationToken cancellationToken)
     {
         return Ok(await _ratings.SubmitAsync(User.GetCustomerId(), sessionId, request, cancellationToken));
+    }
+
+    [HttpPost("sessions/restart")]
+    [ProducesResponseType(typeof(SessionLifecycleResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RestartSession(CancellationToken cancellationToken)
+    {
+        return Ok(await ExecuteLifecycleAsync(
+            customerId => _lifecycle.RestartAsync(customerId, ChannelType.WebPortal, cancellationToken: cancellationToken),
+            cancellationToken));
+    }
+
+    [HttpPost("sessions/end")]
+    [ProducesResponseType(typeof(SessionLifecycleResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> EndSession(CancellationToken cancellationToken)
+    {
+        return Ok(await ExecuteLifecycleAsync(
+            customerId => _lifecycle.EndAsync(customerId, cancellationToken),
+            cancellationToken));
+    }
+
+    private async Task<SessionLifecycleResponse> ExecuteLifecycleAsync(
+        Func<string, Task<SessionLifecycleResult>> action,
+        CancellationToken cancellationToken)
+    {
+        var customerId = User.GetCustomerId();
+        var result = await action(customerId);
+        return new SessionLifecycleResponse
+        {
+            Action = result.Action,
+            Message = result.Message,
+            ClosedSessionId = result.ClosedSessionId,
+            NewSessionId = result.NewSessionId,
+            Snapshot = await _identities.GetActiveSessionAsync(customerId, cancellationToken)
+        };
     }
 }

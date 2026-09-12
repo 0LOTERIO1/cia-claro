@@ -1,4 +1,3 @@
-using Cia.Api.DTOs;
 using Cia.Api.Entities;
 using Cia.Api.Enums;
 using Cia.Api.Interfaces;
@@ -7,84 +6,55 @@ namespace Cia.Api.Services;
 
 public class TelegramCommandHandler
 {
-    public const string ActiveSessionMessage =
-        "Você já possui um atendimento em andamento. Pode continuar por aqui.";
+    public const string HumanSessionMessage = SessionLifecycleService.HumanSessionMessage;
+    public const string OfferRestartMessage = SessionLifecycleService.OfferRestartMessage;
+    public const string ContinuedMessage = SessionLifecycleService.ContinuedMessage;
+    public const string EndedMessage = SessionLifecycleService.EndedMessage;
+    public const string HumanEndMessage = SessionLifecycleService.HumanEndMessage;
 
-    public const string HumanSessionMessage =
-        "Você já possui um atendimento com nossa equipe em andamento.";
-
-    private readonly ISessionRepository _sessions;
-    private readonly IConversationService _conversations;
-    private readonly IMessageRepository _messages;
+    private readonly ISessionLifecycleService _lifecycle;
     private readonly ITelegramService _telegram;
     private readonly ILogger<TelegramCommandHandler> _logger;
 
     public TelegramCommandHandler(
-        ISessionRepository sessions,
-        IConversationService conversations,
-        IMessageRepository messages,
+        ISessionLifecycleService lifecycle,
         ITelegramService telegram,
         ILogger<TelegramCommandHandler> logger)
     {
-        _sessions = sessions;
-        _conversations = conversations;
-        _messages = messages;
+        _lifecycle = lifecycle;
         _telegram = telegram;
         _logger = logger;
     }
 
-    public async Task HandleStartAsync(
+    public Task HandleStartAsync(
         Customer customer,
         long telegramUserId,
         long telegramChatId,
         string? firstName,
         CancellationToken cancellationToken = default)
-    {
-        var open = await _sessions.GetOpenByCustomerIdAsync(customer.Id, cancellationToken);
-        if (open is not null && IsHumanSession(open))
-        {
-            LogCommand(telegramUserId, "start", open.Id, TelegramCommandActions.HumanSessionPreserved);
-            await _telegram.SendMessageAsync(telegramChatId, HumanSessionMessage, cancellationToken);
-            return;
-        }
+        => DispatchAsync("start", customer, telegramUserId, telegramChatId, firstName, cancellationToken);
 
-        if (open is not null)
-        {
-            if (open.CurrentChannel != ChannelType.Telegram)
-            {
-                open.CurrentChannel = ChannelType.Telegram;
-                open.UpdatedAt = DateTime.UtcNow;
-                await _sessions.SaveChangesAsync(cancellationToken);
-            }
+    public Task HandleContinueAsync(
+        Customer customer,
+        long telegramUserId,
+        long telegramChatId,
+        CancellationToken cancellationToken = default)
+        => DispatchAsync("continuar", customer, telegramUserId, telegramChatId, null, cancellationToken);
 
-            LogCommand(telegramUserId, "start", open.Id, TelegramCommandActions.ContinuedActiveSession);
-            await _telegram.SendMessageAsync(telegramChatId, ActiveSessionMessage, cancellationToken);
-            return;
-        }
+    public Task HandleRestartAsync(
+        Customer customer,
+        long telegramUserId,
+        long telegramChatId,
+        string? firstName,
+        CancellationToken cancellationToken = default)
+        => DispatchAsync("novo", customer, telegramUserId, telegramChatId, firstName, cancellationToken);
 
-        var created = await _conversations.CreateSessionAsync(
-            new CreateSessionRequest
-            {
-                CustomerId = customer.Id,
-                Channel = ChannelType.Telegram
-            },
-            cancellationToken);
-
-        var greeting = BuildGreeting(firstName, customer.Name);
-        await _messages.AddAsync(new Message
-        {
-            Id = Guid.NewGuid(),
-            SessionId = created.Id,
-            Sender = MessageSender.Assistant,
-            Channel = ChannelType.Telegram,
-            Content = greeting,
-            CreatedAt = DateTime.UtcNow
-        }, cancellationToken);
-        await _sessions.SaveChangesAsync(cancellationToken);
-
-        LogCommand(telegramUserId, "start", created.Id, TelegramCommandActions.CreatedNewSession);
-        await _telegram.SendMessageAsync(telegramChatId, greeting, cancellationToken);
-    }
+    public Task HandleEndAsync(
+        Customer customer,
+        long telegramUserId,
+        long telegramChatId,
+        CancellationToken cancellationToken = default)
+        => DispatchAsync("encerrar", customer, telegramUserId, telegramChatId, null, cancellationToken);
 
     public static string BuildGreeting(string? firstName, string? customerName)
     {
@@ -92,6 +62,30 @@ public class TelegramCommandHandler
         return string.IsNullOrWhiteSpace(name)
             ? "Olá! Sou a CIA, assistente virtual da Claro. Como posso ajudar você hoje?"
             : $"Olá, {name}! Sou a CIA, assistente virtual da Claro. Como posso ajudar você hoje?";
+    }
+
+    private async Task DispatchAsync(
+        string command,
+        Customer customer,
+        long telegramUserId,
+        long telegramChatId,
+        string? firstName,
+        CancellationToken cancellationToken)
+    {
+        var result = command switch
+        {
+            "start" => await _lifecycle.HandleStartAsync(customer.Id, ChannelType.Telegram, firstName, cancellationToken),
+            "continuar" => await _lifecycle.ContinueAsync(customer.Id, ChannelType.Telegram, cancellationToken),
+            "novo" => await _lifecycle.RestartAsync(customer.Id, ChannelType.Telegram, firstName, cancellationToken),
+            "encerrar" => await _lifecycle.EndAsync(customer.Id, cancellationToken),
+            _ => throw new InvalidOperationException($"Comando Telegram não suportado: {command}")
+        };
+
+        _logger.LogInformation(
+            "Telegram command received. TelegramUserId={TelegramUserId} Command={Command} SessionId={SessionId} Action={Action} ClosedSessionId={ClosedSessionId} NewSessionId={NewSessionId}",
+            telegramUserId, command, result.Session?.Id, result.Action, result.ClosedSessionId, result.NewSessionId);
+
+        await _telegram.SendMessageAsync(telegramChatId, result.Message, cancellationToken);
     }
 
     private static string? ResolveDisplayName(string? firstName, string? customerName)
@@ -107,33 +101,6 @@ public class TelegramCommandHandler
         }
 
         var name = customerName.Trim();
-        if (name.StartsWith("Cliente ", StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
-
-        return name;
-    }
-
-    private static bool IsHumanSession(ConversationSession session)
-    {
-        if (session.Status is SessionStatus.WaitingForAgent or SessionStatus.Transferred)
-        {
-            return true;
-        }
-
-        var requestStatus = session.HumanAgentRequests?
-            .OrderByDescending(r => r.CreatedAt)
-            .Select(r => (HumanAgentRequestStatus?)r.Status)
-            .FirstOrDefault();
-
-        return requestStatus is HumanAgentRequestStatus.Waiting or HumanAgentRequestStatus.Assigned;
-    }
-
-    private void LogCommand(long telegramUserId, string command, Guid? sessionId, string action)
-    {
-        _logger.LogInformation(
-            "Telegram command received. TelegramUserId={TelegramUserId} Command={Command} SessionId={SessionId} Action={Action}",
-            telegramUserId, command, sessionId, action);
+        return name.StartsWith("Cliente ", StringComparison.OrdinalIgnoreCase) ? null : name;
     }
 }

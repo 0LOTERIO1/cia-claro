@@ -157,7 +157,13 @@ export function AdminSessionPage() {
               readOnly
               canRate={false}
               rating={detail.rating ?? detail.session.rating}
-              waitingMessage="Este atendimento ainda não foi avaliado."
+              waitingMessage={
+                detail.session.closureReason === 'CustomerRestarted'
+                  ? 'O cliente iniciou um novo atendimento. Esta sessão não entra na avaliação.'
+                  : detail.session.closureReason === 'CustomerEnded'
+                    ? 'O cliente encerrou este atendimento. Sem avaliação.'
+                    : 'Este atendimento ainda não foi avaliado.'
+              }
             />
           </aside>
           <main className="chat-window">

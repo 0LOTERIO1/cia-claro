@@ -1,5 +1,6 @@
 using Cia.Api.Entities;
 using Cia.Api.Enums;
+using Cia.Api.Services;
 
 namespace Cia.Api.DTOs;
 
@@ -25,6 +26,7 @@ public static class DtoMapper
         PreviousDepartment = session.PreviousDepartment,
         Status = session.Status,
         DetectedIntent = session.DetectedIntent,
+        ClosureReason = session.ClosureReason,
         CreatedAt = session.CreatedAt,
         UpdatedAt = session.UpdatedAt,
         ContextRestored = contextRestored,
@@ -38,7 +40,7 @@ public static class DtoMapper
             .OrderBy(t => t.CreatedAt)
             .Select(t => t.ToDto())
             .ToList(),
-        CanRate = session.Status == SessionStatus.Resolved && session.Rating is null,
+        CanRate = SessionRules.CanRate(session),
         Rating = session.Rating?.ToDto()
     };
 

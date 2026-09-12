@@ -75,15 +75,26 @@ public class TelegramInboundService : ITelegramInboundService
                 customer.Id, customer.Name);
 
             if (TelegramCommandParser.TryParse(messageText, out command, out _) &&
-                TelegramCommandParser.IsStart(command))
+                TelegramCommandParser.IsSessionLifecycle(command))
             {
-                stage = "start-command";
-                await _commands.HandleStartAsync(
-                    customer,
-                    telegramUserId,
-                    telegramChatId,
-                    firstName,
-                    cancellationToken);
+                stage = $"{command}-command";
+                if (TelegramCommandParser.IsStart(command))
+                {
+                    await _commands.HandleStartAsync(customer, telegramUserId, telegramChatId, firstName, cancellationToken);
+                }
+                else if (TelegramCommandParser.IsContinue(command))
+                {
+                    await _commands.HandleContinueAsync(customer, telegramUserId, telegramChatId, cancellationToken);
+                }
+                else if (TelegramCommandParser.IsRestart(command))
+                {
+                    await _commands.HandleRestartAsync(customer, telegramUserId, telegramChatId, firstName, cancellationToken);
+                }
+                else
+                {
+                    await _commands.HandleEndAsync(customer, telegramUserId, telegramChatId, cancellationToken);
+                }
+
                 return;
             }
 

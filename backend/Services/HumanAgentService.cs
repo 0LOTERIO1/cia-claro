@@ -176,6 +176,7 @@ public class HumanAgentService : IHumanAgentService
         request.Status = HumanAgentRequestStatus.Finished;
         request.FinishedAt = DateTime.UtcNow;
         request.Session.Status = SessionStatus.Resolved;
+        request.Session.ClosureReason = SessionClosureReason.Completed;
         request.Session.UpdatedAt = DateTime.UtcNow;
         await _sessions.SaveChangesAsync(cancellationToken);
 

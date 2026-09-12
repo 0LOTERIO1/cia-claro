@@ -51,6 +51,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.PreviousDepartment).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.DetectedIntent).HasConversion<string>().HasMaxLength(32);
+            entity.Property(x => x.ClosureReason).HasConversion<string>().HasMaxLength(32);
             entity.HasIndex(x => new { x.CustomerId, x.Status });
 
             entity.HasOne(x => x.Customer)

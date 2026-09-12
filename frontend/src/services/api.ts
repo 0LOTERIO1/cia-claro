@@ -18,6 +18,7 @@ import type {
   UserDto,
   AccessibilityPreferencesDto,
   SubmitServiceRatingResponse,
+  SessionLifecycleResponse,
 } from '../types/api'
 
 const TOKEN_KEY = 'cia.token'
@@ -125,6 +126,14 @@ export const apiClient = {
   },
   resumeActiveSession: async () => {
     const { data } = await api.post<ActiveSessionResponse>('/api/customer/active-session/resume')
+    return data
+  },
+  restartSession: async () => {
+    const { data } = await api.post<SessionLifecycleResponse>('/api/customer/sessions/restart')
+    return data
+  },
+  endSession: async () => {
+    const { data } = await api.post<SessionLifecycleResponse>('/api/customer/sessions/end')
     return data
   },
   sendCustomerMessage: async (content: string) => {

@@ -46,6 +46,11 @@ public class ServiceRatingService : IServiceRatingService
             throw new ValidationAppException("Só é possível avaliar um atendimento finalizado.");
         }
 
+        if (!SessionRules.IsCompletedClosure(session))
+        {
+            throw new ValidationAppException("Este atendimento não está disponível para avaliação.");
+        }
+
         if (session.Rating is not null || await _ratings.GetBySessionIdAsync(sessionId, cancellationToken) is not null)
         {
             throw new ConflictException("Este atendimento já foi avaliado.");

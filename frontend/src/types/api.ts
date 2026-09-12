@@ -6,6 +6,7 @@ export type DepartmentType =
   | 'Financial'
   | 'HumanAgent'
 export type SessionStatus = 'Active' | 'Resolved' | 'Transferred' | 'WaitingForAgent'
+export type SessionClosureReason = 'Completed' | 'CustomerRestarted' | 'CustomerEnded'
 export type MessageSender = 'Customer' | 'Assistant' | 'HumanAgent'
 export type UserRole = 'Customer' | 'Agent' | 'Admin'
 export type HumanAgentRequestStatus = 'Waiting' | 'Assigned' | 'Finished'
@@ -72,6 +73,7 @@ export interface SessionDto {
   previousDepartment?: DepartmentType | null
   status: SessionStatus
   detectedIntent: IntentType
+  closureReason?: SessionClosureReason | null
   createdAt: string
   updatedAt: string
   contextRestored: boolean
@@ -177,6 +179,14 @@ export interface ActiveSessionResponse {
 export interface ChannelUnlinkDto {
   success: boolean
   message: string
+}
+
+export interface SessionLifecycleResponse {
+  action: string
+  message: string
+  closedSessionId?: string | null
+  newSessionId?: string | null
+  snapshot: ActiveSessionResponse
 }
 
 export interface AdminSessionDetailDto {

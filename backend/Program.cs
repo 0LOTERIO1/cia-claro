@@ -150,6 +150,7 @@ builder.Services.AddScoped<IAccessibilityService, AccessibilityService>();
 builder.Services.AddScoped<IHumanAgentService, HumanAgentService>();
 builder.Services.AddScoped<IChannelIdentityService, ChannelIdentityService>();
 builder.Services.AddScoped<IServiceRatingService, ServiceRatingService>();
+builder.Services.AddScoped<ISessionLifecycleService, SessionLifecycleService>();
 builder.Services.AddScoped<ITelegramService, TelegramService>();
 builder.Services.AddScoped<TelegramCommandHandler>();
 builder.Services.AddScoped<ITelegramInboundService, TelegramInboundService>();

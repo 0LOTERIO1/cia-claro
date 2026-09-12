@@ -137,6 +137,16 @@ internal static class TestComposition
             new ServiceRatingRepository(db));
     }
 
+    public static ISessionLifecycleService CreateLifecycle(AppDbContext db, ConversationService conversation)
+    {
+        return new SessionLifecycleService(
+            new CustomerRepository(db),
+            new SessionRepository(db),
+            conversation,
+            new MessageRepository(db),
+            NullLogger<SessionLifecycleService>.Instance);
+    }
+
     public static TelegramInboundService CreateTelegramInbound(
         AppDbContext db,
         ConversationService conversation,
@@ -147,9 +157,7 @@ internal static class TestComposition
             telegram,
             CreateIdentities(db),
             new TelegramCommandHandler(
-                new SessionRepository(db),
-                conversation,
-                new MessageRepository(db),
+                CreateLifecycle(db, conversation),
                 telegram,
                 NullLogger<TelegramCommandHandler>.Instance),
             NullLogger<TelegramInboundService>.Instance);

@@ -21,6 +21,15 @@ function isOpenStatus(status: SessionDto['status'], humanRequestStatus?: Session
   )
 }
 
+function isHumanSession(session: SessionDto | null | undefined) {
+  if (!session) return false
+  return (
+    session.status === 'WaitingForAgent' ||
+    (session.status === 'Transferred' &&
+      (session.humanRequestStatus === 'Waiting' || session.humanRequestStatus === 'Assigned'))
+  )
+}
+
 function shouldAutoResume(session: SessionDto | null | undefined) {
   if (!session) return false
   if (session.status === 'Resolved') return true
@@ -37,6 +46,7 @@ function sameSessionSnapshot(current: SessionDto, next: SessionDto) {
     current.updatedAt === next.updatedAt &&
     current.humanRequestStatus === next.humanRequestStatus &&
     current.canRate === next.canRate &&
+    current.closureReason === next.closureReason &&
     current.rating?.score === next.rating?.score &&
     current.rating?.comment === next.rating?.comment
   )
@@ -277,7 +287,27 @@ export function useChat(customerId: string | null) {
     }
   }
 
-  const startNewAttendance = () => {
+  const startNewAttendance = async () => {
+    if (session && session.status === 'Active' && !isHumanSession(session)) {
+      setSending(true)
+      setError(null)
+      try {
+        const result = await apiClient.restartSession()
+        startingFreshRef.current = false
+        setChannels(result.snapshot.channels ?? [])
+        applySnapshot(result.snapshot.session ?? null, result.snapshot.messages ?? [], true)
+        setHandoff(null)
+        setContextRestored(false)
+        setTransferNotice(result.message)
+        setRatingError(null)
+      } catch (err) {
+        setError(getErrorMessage(err))
+      } finally {
+        setSending(false)
+      }
+      return
+    }
+
     startingFreshRef.current = true
     setSession(null)
     setMessages([])
@@ -288,6 +318,28 @@ export function useChat(customerId: string | null) {
     setResumed(false)
     setError(null)
     setRatingError(null)
+  }
+
+  const endAttendance = async () => {
+    if (!session || sending || isHumanSession(session) || session.status !== 'Active') return
+    setSending(true)
+    setError(null)
+    try {
+      const result = await apiClient.endSession()
+      startingFreshRef.current = true
+      setChannels(result.snapshot.channels ?? [])
+      applySnapshot(null, [], false)
+      setHandoff(null)
+      setTransfers([])
+      setContextRestored(false)
+      setResumed(false)
+      setTransferNotice(result.message)
+      setRatingError(null)
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setSending(false)
+    }
   }
 
   const submitRating = async (score: number, comment: string) => {
@@ -344,6 +396,7 @@ export function useChat(customerId: string | null) {
     disconnectTelegram,
     continueAttendance,
     startNewAttendance,
+    endAttendance,
     submitRating,
     reload: load,
   }

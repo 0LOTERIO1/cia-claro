@@ -15,6 +15,7 @@ public class ConversationSession
     public IntentType DetectedIntent { get; set; } = IntentType.Unknown;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public SessionClosureReason? ClosureReason { get; set; }
 
     public Customer Customer { get; set; } = null!;
     public ConversationContext? Context { get; set; }

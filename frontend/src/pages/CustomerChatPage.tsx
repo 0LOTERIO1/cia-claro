@@ -187,9 +187,24 @@ export function CustomerChatPage() {
               Falar com atendente
             </button>
           )}
-          {resolved && (
-            <button type="button" className="handoff-btn" onClick={chat.startNewAttendance}>
+          {(resolved || (chat.session?.status === 'Active' && !humanFlow)) && (
+            <button
+              type="button"
+              className="handoff-btn"
+              disabled={chat.sending}
+              onClick={() => void chat.startNewAttendance()}
+            >
               Novo atendimento
+            </button>
+          )}
+          {chat.session?.status === 'Active' && !humanFlow && (
+            <button
+              type="button"
+              className="danger-btn"
+              disabled={chat.sending}
+              onClick={() => void chat.endAttendance()}
+            >
+              Encerrar atendimento
             </button>
           )}
           <HandoffSummary handoff={chat.handoff} />
@@ -210,7 +225,7 @@ export function CustomerChatPage() {
             </section>
           ) : (
             <>
-              {resolved && chat.session && (
+              {resolved && chat.session && (chat.session.canRate || chat.session.rating) && (
                 <ServiceRatingCard
                   canRate={Boolean(chat.session.canRate)}
                   rating={chat.session.rating}
