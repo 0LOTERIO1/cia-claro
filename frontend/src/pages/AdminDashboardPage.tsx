@@ -36,7 +36,7 @@ export function AdminDashboardPage() {
   }, [])
 
   return (
-    <div className="app-shell theme-app" id="conteudo-principal">
+    <div className="app-shell admin-page theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Operação</p>
@@ -53,7 +53,7 @@ export function AdminDashboardPage() {
       {error && <div className="banner error" role="alert">{error}</div>}
       {loading && <p className="empty">Carregando indicadores...</p>}
       {dashboard && <DashboardCards dashboard={dashboard} />}
-      <section className="panel">
+      <section className="panel admin-table-panel">
         <h2>Atendimentos</h2>
         <SessionTable sessions={sessions} />
       </section>

@@ -47,7 +47,7 @@ export function AgentDashboardPage() {
   }
 
   return (
-    <div className="app-shell theme-app" id="conteudo-principal">
+    <div className="app-shell workspace-page theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Funcionário Claro</p>

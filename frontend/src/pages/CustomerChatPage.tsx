@@ -4,6 +4,7 @@ import { HandoffSummary } from '../components/HandoffSummary'
 import { JourneyTimeline } from '../components/JourneyTimeline'
 import { useAuth } from '../auth/AuthContext'
 import { useChat } from '../hooks/useChat'
+import { useMediaQuery } from '../hooks/useMediaQuery'
 import { formatChannel, formatDateTime, formatDepartment, formatStatus } from '../services/labels'
 import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { ServiceRatingCard } from '../components/ServiceRatingCard'
@@ -22,9 +23,10 @@ export function CustomerChatPage() {
     !chat.resumed &&
     chat.session?.initialChannel === 'Telegram' &&
     chat.session?.currentChannel !== 'WebPortal'
+  const desktop = useMediaQuery('(min-width: 1200px)')
 
   return (
-    <div className="app-shell theme-app" id="conteudo-principal">
+    <div className="app-shell workspace-page theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Portal do cliente</p>
@@ -60,8 +62,46 @@ export function CustomerChatPage() {
         <div className="banner info" role="status">Um atendente assumiu sua conversa. O histórico anterior foi mantido.</div>
       )}
 
-      <div className="layout">
-        <aside>
+      <div className="customer-workspace">
+        <main className="workspace-chat">
+          {chat.loading ? (
+            <p className="empty">Carregando atendimento...</p>
+          ) : pendingTelegramSession ? (
+            <section className="panel resume-panel">
+              <h2>Continuar no Portal CIA</h2>
+              <p>
+                Encontramos o atendimento iniciado no Telegram. O protocolo, o histórico e o contexto serão
+                mantidos. Nenhuma nova sessão será criada.
+              </p>
+              <button type="button" className="handoff-btn" onClick={() => void chat.continueAttendance()}>
+                Continuar atendimento
+              </button>
+            </section>
+          ) : (
+            <>
+              {resolved && chat.session && (chat.session.canRate || chat.session.rating) && (
+                <ServiceRatingCard
+                  canRate={Boolean(chat.session.canRate)}
+                  rating={chat.session.rating}
+                  submitting={chat.ratingSubmitting}
+                  error={chat.ratingError}
+                  onSubmit={chat.submitRating}
+                />
+              )}
+              <ChatWindow
+                messages={chat.messages}
+                sending={chat.sending}
+                disabled={Boolean(chat.error && !chat.customer) || resolved}
+                status={chat.session?.status}
+                onSend={chat.sendMessage}
+              />
+            </>
+          )}
+        </main>
+        <aside className="workspace-context">
+          <details className="context-drawer" {...(desktop ? { open: true } : {})}>
+            <summary>Contexto do atendimento</summary>
+            <div className="context-stack">
           <section className="panel">
             <h2>Canais conectados</h2>
             <div className="channel-status">
@@ -208,42 +248,9 @@ export function CustomerChatPage() {
             </button>
           )}
           <HandoffSummary handoff={chat.handoff} />
+            </div>
+          </details>
         </aside>
-        <main>
-          {chat.loading ? (
-            <p className="empty">Carregando atendimento...</p>
-          ) : pendingTelegramSession ? (
-            <section className="panel resume-panel">
-              <h2>Continuar no Portal CIA</h2>
-              <p>
-                Encontramos o atendimento iniciado no Telegram. O protocolo, o histórico e o contexto serão
-                mantidos. Nenhuma nova sessão será criada.
-              </p>
-              <button type="button" className="handoff-btn" onClick={() => void chat.continueAttendance()}>
-                Continuar atendimento
-              </button>
-            </section>
-          ) : (
-            <>
-              {resolved && chat.session && (chat.session.canRate || chat.session.rating) && (
-                <ServiceRatingCard
-                  canRate={Boolean(chat.session.canRate)}
-                  rating={chat.session.rating}
-                  submitting={chat.ratingSubmitting}
-                  error={chat.ratingError}
-                  onSubmit={chat.submitRating}
-                />
-              )}
-              <ChatWindow
-                messages={chat.messages}
-                sending={chat.sending}
-                disabled={Boolean(chat.error && !chat.customer) || resolved}
-                status={chat.session?.status}
-                onSend={chat.sendMessage}
-              />
-            </>
-          )}
-        </main>
       </div>
     </div>
   )

@@ -39,7 +39,7 @@ export function AdminSessionPage() {
   }, [id])
 
   return (
-    <div className="app-shell theme-app" id="conteudo-principal">
+    <div className="app-shell admin-page theme-app" id="conteudo-principal">
       <header className="topbar">
         <div>
           <p className="eyebrow">Detalhe do atendimento</p>
@@ -52,8 +52,9 @@ export function AdminSessionPage() {
       </header>
       {error && <div className="banner error" role="alert">{error}</div>}
       {detail && (
-        <div className="layout">
-          <aside>
+        <div className="admin-detail">
+          <div className="admin-detail-meta">
+            <div className="admin-detail-data">
             <section className="panel">
               <h2>Cliente</h2>
               <dl>
@@ -123,6 +124,8 @@ export function AdminSessionPage() {
                 </div>
               </dl>
             </section>
+            </div>
+            <div className="admin-detail-context">
             <section className="panel">
               <h2>Contexto</h2>
               <dl>
@@ -165,8 +168,9 @@ export function AdminSessionPage() {
                     : 'Este atendimento ainda não foi avaliado.'
               }
             />
-          </aside>
-          <main className="chat-window">
+            </div>
+          </div>
+          <main className="chat-window admin-chat">
             <div className="chat-history" role="region" aria-label="Histórico da conversa">
               {detail.messages.map((message) => (
                 <MessageBubble
