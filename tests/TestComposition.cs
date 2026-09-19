@@ -1,3 +1,4 @@
+using Cia.Api.Configuration;
 using Cia.Api.Data;
 using Cia.Api.Entities;
 using Cia.Api.Enums;
@@ -14,6 +15,9 @@ namespace Cia.Api.Tests;
 
 internal static class TestComposition
 {
+    public static readonly string TwoFactorEncryptionKey =
+        Convert.ToBase64String(Enumerable.Range(1, 32).Select(value => (byte)value).ToArray());
+
     public static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -59,12 +63,22 @@ internal static class TestComposition
         IOrchestrationService orchestration = new OrchestrationService(transfers, sessions, NullLogger<OrchestrationService>.Instance);
         var fallbackProvider = new LocalFallbackAiProvider(intent);
         var aiOptions = Options.Create(new Cia.Api.Configuration.AiOptions());
-        var guardrails = new ConversationGuardrails(new LocalKnowledgeService(), aiOptions);
-        IAiService ai = new AiService(fallbackProvider, aiOptions, NullLogger<AiService>.Instance);
+        var knowledge = new LocalKnowledgeService();
+        var promptSecurity = new PromptSecurityService();
+        var guardrails = new ConversationGuardrails(knowledge, aiOptions, promptSecurity);
+        IAiService ai = new AiService(
+            fallbackProvider,
+            fallbackProvider,
+            knowledge,
+            promptSecurity,
+            new SensitiveDataRedactor(),
+            aiOptions,
+            NullLogger<AiService>.Instance);
         IConversationUnderstandingService understanding = new ConversationUnderstandingService(
             understandingProvider ?? fallbackProvider,
             fallbackProvider,
             guardrails,
+            promptSecurity,
             NullLogger<ConversationUnderstandingService>.Instance);
         IProtocolService protocol = new ProtocolService(sessions);
         var handoff = new HandoffService(
@@ -94,6 +108,7 @@ internal static class TestComposition
             handoff,
             protocol,
             orchestration,
+            new SensitiveDataRedactor(),
             aiOptions,
             NullLogger<ConversationService>.Instance);
 
@@ -104,10 +119,12 @@ internal static class TestComposition
     {
         var fallback = provider as LocalFallbackAiProvider ?? new LocalFallbackAiProvider(new IntentService());
         var aiOptions = Options.Create(new Cia.Api.Configuration.AiOptions());
+        var promptSecurity = new PromptSecurityService();
         return new ConversationUnderstandingService(
             provider ?? fallback,
             fallback,
-            new ConversationGuardrails(new LocalKnowledgeService(), aiOptions),
+            new ConversationGuardrails(new LocalKnowledgeService(), aiOptions, promptSecurity),
+            promptSecurity,
             NullLogger<ConversationUnderstandingService>.Instance);
     }
 
@@ -177,5 +194,26 @@ internal static class TestComposition
         db.Users.Add(user);
         db.SaveChanges();
         return user;
+    }
+
+    public static AuthService CreateAuth(
+        AppDbContext db,
+        TimeProvider? timeProvider = null,
+        TwoFactorOptions? twoFactorOptions = null)
+    {
+        var options = twoFactorOptions ?? new TwoFactorOptions
+        {
+            EncryptionKey = TwoFactorEncryptionKey
+        };
+        var wrappedOptions = Options.Create(options);
+
+        return new AuthService(
+            new UserRepository(db),
+            new TwoFactorRepository(db),
+            Options.Create(new JwtOptions()),
+            wrappedOptions,
+            new TwoFactorProtector(wrappedOptions),
+            new TwoFactorCodeService(wrappedOptions),
+            timeProvider ?? TimeProvider.System);
     }
 }

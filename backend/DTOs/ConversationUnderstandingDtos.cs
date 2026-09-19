@@ -66,6 +66,8 @@ public sealed class ConversationUnderstandingResult
     public string Provider { get; set; } = "LocalFallback";
     public bool UsedFallback { get; set; }
     public long LatencyMs { get; set; }
+    public bool SecurityBlocked { get; set; }
+    public IReadOnlyList<string> SecurityReasons { get; set; } = Array.Empty<string>();
 
     public IEnumerable<IntentType> AllIntents
     {

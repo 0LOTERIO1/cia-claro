@@ -3,6 +3,7 @@ using Cia.Api.Enums;
 using Cia.Api.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cia.Api.Controllers;
 
@@ -15,17 +16,23 @@ public class CustomerController : ControllerBase
     private readonly IConversationService _conversations;
     private readonly IServiceRatingService _ratings;
     private readonly ISessionLifecycleService _lifecycle;
+    private readonly IRegionalOutageService _outages;
+    private readonly IHandoffService _handoffs;
 
     public CustomerController(
         IChannelIdentityService identities,
         IConversationService conversations,
         IServiceRatingService ratings,
-        ISessionLifecycleService lifecycle)
+        ISessionLifecycleService lifecycle,
+        IRegionalOutageService outages,
+        IHandoffService handoffs)
     {
         _identities = identities;
         _conversations = conversations;
         _ratings = ratings;
         _lifecycle = lifecycle;
+        _outages = outages;
+        _handoffs = handoffs;
     }
 
     [HttpGet("channels")]
@@ -57,6 +64,16 @@ public class CustomerController : ControllerBase
         return Ok(await _identities.GetActiveSessionAsync(User.GetCustomerId(), cancellationToken));
     }
 
+    [HttpGet("regional-outage")]
+    [ProducesResponseType(typeof(RegionalOutageCheckResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CheckRegionalOutage(
+        [FromQuery] string postalCode,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _outages.CheckAsync(postalCode, cancellationToken));
+    }
+
     [HttpPost("active-session/resume")]
     [ProducesResponseType(typeof(ActiveSessionResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> ResumeActiveSession(CancellationToken cancellationToken)
@@ -65,6 +82,8 @@ public class CustomerController : ControllerBase
     }
 
     [HttpPost("messages")]
+    [EnableRateLimiting("chat")]
+    [RequestSizeLimit(8_192)]
     [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SendMessage(
@@ -93,6 +112,23 @@ public class CustomerController : ControllerBase
         CancellationToken cancellationToken)
     {
         return Ok(await _ratings.SubmitAsync(User.GetCustomerId(), sessionId, request, cancellationToken));
+    }
+
+    [HttpPost("sessions/{sessionId:guid}/handoff")]
+    [EnableRateLimiting("handoff")]
+    [ProducesResponseType(typeof(HandoffDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateHandoff(Guid sessionId, CancellationToken cancellationToken)
+    {
+        var session = await _conversations.GetSessionAsync(sessionId, cancellationToken);
+        if (!string.Equals(session.CustomerId, User.GetCustomerId(), StringComparison.Ordinal))
+        {
+            return Forbid();
+        }
+
+        var handoff = await _handoffs.CreateHandoffAsync(sessionId, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, handoff);
     }
 
     [HttpPost("sessions/restart")]

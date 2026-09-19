@@ -8,6 +8,7 @@ using Cia.Api.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using OtpNet;
 
 namespace Cia.Api.Tests;
 
@@ -20,9 +21,9 @@ public class DemoCustomerAuthTests
         var passwords = await SeedWithGeneratedPasswordsAsync(db);
         var auth = CreateAuth(db);
 
-        var pedro = await auth.LoginAsync(new LoginRequest { Email = DbSeeder.PedroEmail, Password = passwords.Pedro.Password! });
-        var lucas = await auth.LoginAsync(new LoginRequest { Email = DbSeeder.DemoCustomerEmail, Password = passwords.Lucas.Password! });
-        var rafael = await auth.LoginAsync(new LoginRequest { Email = DbSeeder.RafaelEmail, Password = passwords.Rafael.Password! });
+        var pedro = await CompleteInitialLoginAsync(auth, DbSeeder.PedroEmail, passwords.Pedro.Password!);
+        var lucas = await CompleteInitialLoginAsync(auth, DbSeeder.DemoCustomerEmail, passwords.Lucas.Password!);
+        var rafael = await CompleteInitialLoginAsync(auth, DbSeeder.RafaelEmail, passwords.Rafael.Password!);
 
         Assert.Equal(UserRole.Customer, pedro.User.Role);
         Assert.Equal(UserRole.Customer, lucas.User.Role);
@@ -161,8 +162,8 @@ public class DemoCustomerAuthTests
         Assert.Contains(db.Customers, c => c.Id == DbSeeder.PedroCustomerId);
         Assert.Contains(db.Customers, c => c.Id == DbSeeder.DemoCustomerId);
         Assert.Contains(db.Customers, c => c.Id == DbSeeder.RafaelCustomerId);
-        Assert.True(db.Users.Any(u => u.Email == DbSeeder.DemoAgentEmail && u.Role == UserRole.Agent));
-        Assert.True(db.Users.Any(u => u.Email == DbSeeder.DemoAdminEmail && u.Role == UserRole.Admin));
+        Assert.False(db.Users.Any(u => u.Email == DbSeeder.DemoAgentEmail));
+        Assert.False(db.Users.Any(u => u.Email == DbSeeder.DemoAdminEmail));
     }
 
     [Fact]
@@ -198,7 +199,9 @@ public class DemoCustomerAuthTests
         {
             Pedro = new DemoUserCredentials { Password = CreateTestSecret() },
             Lucas = new DemoUserCredentials { Password = CreateTestSecret() },
-            Rafael = new DemoUserCredentials { Password = CreateTestSecret() }
+            Rafael = new DemoUserCredentials { Password = CreateTestSecret() },
+            Agent = new DemoUserCredentials { Password = CreateTestSecret() },
+            Admin = new DemoUserCredentials { Password = CreateTestSecret() }
         };
     }
 
@@ -206,8 +209,23 @@ public class DemoCustomerAuthTests
 
     private static AuthService CreateAuth(AppDbContext db)
     {
-        return new AuthService(
-            new UserRepository(db),
-            Options.Create(new JwtOptions()));
+        return TestComposition.CreateAuth(db);
+    }
+
+    private static async Task<LoginResponse> CompleteInitialLoginAsync(
+        AuthService auth,
+        string email,
+        string password)
+    {
+        var attempt = await auth.LoginAsync(new LoginRequest { Email = email, Password = password });
+        Assert.Equal("requiresSetup", attempt.Status);
+        Assert.NotNull(attempt.ManualKey);
+
+        var totp = new Totp(Base32Encoding.ToBytes(attempt.ManualKey!));
+        return await auth.VerifyTwoFactorAsync(new VerifyTwoFactorRequest
+        {
+            ChallengeId = attempt.ChallengeId,
+            Code = totp.ComputeTotp(DateTime.UtcNow)
+        });
     }
 }

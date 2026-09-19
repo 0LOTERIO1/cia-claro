@@ -8,10 +8,32 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 }
 
+public class LoginAttemptResponse
+{
+    public string Status { get; set; } = string.Empty;
+    public Guid ChallengeId { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public string? ManualKey { get; set; }
+    public string? OtpAuthUri { get; set; }
+}
+
+public class VerifyTwoFactorRequest
+{
+    public Guid ChallengeId { get; set; }
+    public string Code { get; set; } = string.Empty;
+}
+
+public class RecoverTwoFactorRequest
+{
+    public Guid ChallengeId { get; set; }
+    public string RecoveryCode { get; set; } = string.Empty;
+}
+
 public class LoginResponse
 {
     public string Token { get; set; } = string.Empty;
     public UserDto User { get; set; } = null!;
+    public IReadOnlyList<string>? RecoveryCodes { get; set; }
 }
 
 public class UserDto

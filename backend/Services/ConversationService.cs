@@ -20,6 +20,7 @@ public class ConversationService : IConversationService
     private readonly IHandoffService _handoffService;
     private readonly IProtocolService _protocolService;
     private readonly IOrchestrationService _orchestration;
+    private readonly SensitiveDataRedactor _sensitiveData;
     private readonly AiOptions _aiOptions;
     private readonly ILogger<ConversationService> _logger;
 
@@ -33,6 +34,7 @@ public class ConversationService : IConversationService
         IHandoffService handoffService,
         IProtocolService protocolService,
         IOrchestrationService orchestration,
+        SensitiveDataRedactor sensitiveData,
         IOptions<AiOptions> aiOptions,
         ILogger<ConversationService> logger)
     {
@@ -45,6 +47,7 @@ public class ConversationService : IConversationService
         _handoffService = handoffService;
         _protocolService = protocolService;
         _orchestration = orchestration;
+        _sensitiveData = sensitiveData;
         _aiOptions = aiOptions.Value;
         _logger = logger;
     }
@@ -52,6 +55,14 @@ public class ConversationService : IConversationService
     public async Task<SendMessageResponse> SendMessageAsync(SendMessageRequest request, CancellationToken cancellationToken = default)
     {
         ValidateMessage(request);
+        var originalContent = request.Content.Trim();
+        request.Content = _sensitiveData.Redact(originalContent);
+        if (!string.Equals(originalContent, request.Content, StringComparison.Ordinal))
+        {
+            _logger.LogWarning(
+                "Sensitive data redacted from customer message. Channel={Channel}",
+                request.Channel);
+        }
 
         var customer = await GetCustomerAsync(request.CustomerId, cancellationToken);
         _logger.LogInformation("Customer identified. CustomerId={CustomerId} Name={Name}", customer.Id, customer.Name);

@@ -38,8 +38,24 @@ public static class DbSeeder
         await EnsureDemoCustomerUserAsync(
             db, RafaelEmail, "Rafael", RafaelCustomerId, demoUsers.Rafael?.Password, isProduction, logger, cancellationToken);
 
-        await EnsureStaffUserAsync(db, DemoAgentEmail, "Ana Souza", UserRole.Agent, cancellationToken);
-        await EnsureStaffUserAsync(db, DemoAdminEmail, "Admin CIA", UserRole.Admin, cancellationToken);
+        await EnsureStaffUserAsync(
+            db,
+            DemoAgentEmail,
+            "Ana Souza",
+            UserRole.Agent,
+            demoUsers.Agent?.Password,
+            isProduction,
+            logger,
+            cancellationToken);
+        await EnsureStaffUserAsync(
+            db,
+            DemoAdminEmail,
+            "Admin CIA",
+            UserRole.Admin,
+            demoUsers.Admin?.Password,
+            isProduction,
+            logger,
+            cancellationToken);
 
         await BackfillTelegramIdentitiesAsync(db, cancellationToken);
     }
@@ -159,25 +175,62 @@ public static class DbSeeder
         string email,
         string name,
         UserRole role,
+        string? password,
+        bool isProduction,
+        ILogger? logger,
         CancellationToken cancellationToken)
     {
         var normalized = email.Trim().ToLowerInvariant();
-        var exists = await db.Users.AnyAsync(u => u.Email == normalized, cancellationToken);
-        if (exists)
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken);
+        var hasPassword = !string.IsNullOrWhiteSpace(password);
+        if (!hasPassword)
         {
+            var level = isProduction ? LogLevel.Warning : LogLevel.Information;
+            logger?.Log(
+                level,
+                "Demo staff credential was not configured. Login for {Email} was not created or updated.",
+                normalized);
             return;
         }
 
-        db.Users.Add(new User
+        if (user is null)
         {
-            Id = Guid.NewGuid(),
-            Name = name,
-            Email = normalized,
-            PasswordHash = PasswordProtector.Hash("Claro@123"),
-            Role = role,
-            CreatedAt = DateTime.UtcNow
-        });
-        await db.SaveChangesAsync(cancellationToken);
+            db.Users.Add(new User
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Email = normalized,
+                PasswordHash = PasswordProtector.Hash(password!),
+                Role = role,
+                CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var changed = false;
+        if (!string.Equals(user.Name, name, StringComparison.Ordinal))
+        {
+            user.Name = name;
+            changed = true;
+        }
+
+        if (user.Role != role)
+        {
+            user.Role = role;
+            changed = true;
+        }
+
+        if (!PasswordProtector.Verify(password!, user.PasswordHash))
+        {
+            user.PasswordHash = PasswordProtector.Hash(password!);
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static async Task BackfillTelegramIdentitiesAsync(AppDbContext db, CancellationToken cancellationToken)

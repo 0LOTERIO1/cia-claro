@@ -90,7 +90,13 @@ public interface IHandoffService
 
 public interface IAuthService
 {
-    Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<LoginAttemptResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<LoginResponse> VerifyTwoFactorAsync(
+        VerifyTwoFactorRequest request,
+        CancellationToken cancellationToken = default);
+    Task<LoginResponse> RecoverTwoFactorAsync(
+        RecoverTwoFactorRequest request,
+        CancellationToken cancellationToken = default);
     Task<UserDto> GetMeAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 

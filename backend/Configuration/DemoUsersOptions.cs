@@ -7,6 +7,8 @@ public class DemoUsersOptions
     public DemoUserCredentials Pedro { get; set; } = new();
     public DemoUserCredentials Lucas { get; set; } = new();
     public DemoUserCredentials Rafael { get; set; } = new();
+    public DemoUserCredentials Agent { get; set; } = new();
+    public DemoUserCredentials Admin { get; set; } = new();
 }
 
 public class DemoUserCredentials

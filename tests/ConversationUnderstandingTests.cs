@@ -331,7 +331,10 @@ public class ConversationUnderstandingTests
     public void Guardrails_BlockInventedCommercialClaims()
     {
         var knowledge = new LocalKnowledgeService();
-        var guardrails = new ConversationGuardrails(knowledge, Options.Create(new Cia.Api.Configuration.AiOptions()));
+        var guardrails = new ConversationGuardrails(
+            knowledge,
+            Options.Create(new Cia.Api.Configuration.AiOptions()),
+            new PromptSecurityService());
         var sanitized = guardrails.Sanitize(new ConversationUnderstandingResult
         {
             PrimaryIntent = IntentType.BillingQuestion,

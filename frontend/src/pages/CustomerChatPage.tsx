@@ -8,6 +8,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { formatChannel, formatDateTime, formatDepartment, formatStatus } from '../services/labels'
 import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
 import { ServiceRatingCard } from '../components/ServiceRatingCard'
+import { RegionalOutageChecker } from '../components/RegionalOutageChecker'
 
 export function CustomerChatPage() {
   const { user, logout } = useAuth()
@@ -102,6 +103,7 @@ export function CustomerChatPage() {
           <details className="context-drawer" {...(desktop ? { open: true } : {})}>
             <summary>Contexto do atendimento</summary>
             <div className="context-stack">
+          <RegionalOutageChecker />
           <section className="panel">
             <h2>Canais conectados</h2>
             <div className="channel-status">

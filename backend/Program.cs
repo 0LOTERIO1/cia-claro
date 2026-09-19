@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using System.Security.Claims;
 using Cia.Api.Configuration;
 using Cia.Api.Data;
 using Cia.Api.Interfaces;
@@ -24,6 +26,20 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection(TelegramOptions.SectionName));
 builder.Services.Configure<DemoUsersOptions>(builder.Configuration.GetSection(DemoUsersOptions.SectionName));
+builder.Services.AddOptions<TwoFactorOptions>()
+    .Bind(builder.Configuration.GetSection(TwoFactorOptions.SectionName))
+    .Validate(options =>
+    {
+        try
+        {
+            return Convert.FromBase64String(options.EncryptionKey).Length == 32;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }, "TwoFactor:EncryptionKey deve ser uma chave Base64 de 32 bytes.")
+    .ValidateOnStart();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[]
@@ -69,6 +85,57 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("chat", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.User.FindFirstValue("sub")
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("telegram", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.AddPolicy("handoff", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.User.FindFirstValue("sub")
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -100,9 +167,16 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+if (builder.Environment.IsProduction() &&
+    (jwtOptions.Key.Length < 32 || jwtOptions.Key.Contains("change-me", StringComparison.OrdinalIgnoreCase)))
+{
+    throw new InvalidOperationException("Jwt:Key deve ser um segredo forte configurado no ambiente de produção.");
+}
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -111,10 +185,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtOptions.Issuer,
             ValidAudience = jwtOptions.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
+            RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+            NameClaimType = System.Security.Claims.ClaimTypes.Name
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder(
+            JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .RequireClaim("amr", "mfa")
+        .Build();
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não configurada.");
@@ -134,22 +217,31 @@ builder.Services.AddScoped<IChannelIdentityRepository, ChannelIdentityRepository
 builder.Services.AddScoped<IChannelLinkCodeRepository, ChannelLinkCodeRepository>();
 builder.Services.AddScoped<IAccessibilityPreferencesRepository, AccessibilityPreferencesRepository>();
 builder.Services.AddScoped<IServiceRatingRepository, ServiceRatingRepository>();
+builder.Services.AddScoped<ITwoFactorRepository, TwoFactorRepository>();
+builder.Services.AddScoped<IRegionalOutageRepository, RegionalOutageRepository>();
 
 builder.Services.AddScoped<IIntentService, IntentService>();
 builder.Services.AddScoped<IContextService, ContextService>();
 builder.Services.AddScoped<IKnowledgeService, LocalKnowledgeService>();
 builder.Services.AddScoped<ConversationGuardrails>();
 builder.Services.AddScoped<IConversationUnderstandingService, ConversationUnderstandingService>();
+builder.Services.AddSingleton<PromptSecurityService>();
+builder.Services.AddSingleton<SensitiveDataRedactor>();
+builder.Services.AddSingleton<TelegramAbuseGuard>();
 builder.Services.AddScoped<IProtocolService, ProtocolService>();
 builder.Services.AddScoped<IOrchestrationService, OrchestrationService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IHandoffService, HandoffService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<TwoFactorProtector>();
+builder.Services.AddScoped<TwoFactorCodeService>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IAccessibilityService, AccessibilityService>();
 builder.Services.AddScoped<IHumanAgentService, HumanAgentService>();
 builder.Services.AddScoped<IChannelIdentityService, ChannelIdentityService>();
 builder.Services.AddScoped<IServiceRatingService, ServiceRatingService>();
+builder.Services.AddScoped<IRegionalOutageService, RegionalOutageService>();
 builder.Services.AddScoped<ISessionLifecycleService, SessionLifecycleService>();
 builder.Services.AddScoped<ITelegramService, TelegramService>();
 builder.Services.AddScoped<TelegramCommandHandler>();
@@ -175,14 +267,18 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "CIA API v1");
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "CIA API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
 app.UseCors("Frontend");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

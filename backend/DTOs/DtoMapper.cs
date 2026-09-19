@@ -53,6 +53,19 @@ public static class DtoMapper
         CreatedAt = rating.CreatedAt
     };
 
+    public static RegionalOutageDto ToDto(this RegionalOutage outage) => new()
+    {
+        Id = outage.Id,
+        PostalCodePrefix = outage.PostalCodePrefix,
+        Title = outage.Title,
+        Description = outage.Description,
+        StartedAt = outage.StartedAt,
+        ExpectedResolutionAt = outage.ExpectedResolutionAt,
+        ResolvedAt = outage.ResolvedAt,
+        CreatedAt = outage.CreatedAt,
+        Active = outage.ResolvedAt is null
+    };
+
     public static MessageDto ToDto(this Message message) => new()
     {
         Id = message.Id,

@@ -8,7 +8,15 @@ interface Props {
 }
 
 export function ProtectedRoute({ roles, children }: Props) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <main className="auth-loading" aria-live="polite">
+        Validando sessão...
+      </main>
+    )
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />

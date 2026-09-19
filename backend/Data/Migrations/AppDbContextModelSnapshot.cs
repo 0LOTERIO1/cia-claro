@@ -439,6 +439,51 @@ namespace Cia.Api.Data.Migrations
                     b.ToTable("messages", (string)null);
                 });
 
+            modelBuilder.Entity("Cia.Api.Entities.RegionalOutage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ExpectedResolutionAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PostalCodePrefix")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("PostalCodePrefix", "ResolvedAt");
+
+                    b.ToTable("regional_outages", (string)null);
+                });
+
             modelBuilder.Entity("Cia.Api.Entities.ServiceRating", b =>
                 {
                     b.Property<Guid>("Id")
@@ -480,6 +525,73 @@ namespace Cia.Api.Data.Migrations
                     b.ToTable("service_ratings", (string)null);
                 });
 
+            modelBuilder.Entity("Cia.Api.Entities.TwoFactorChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FailedAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PendingSecretEncrypted")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ExpiresAt");
+
+                    b.ToTable("two_factor_challenges", (string)null);
+                });
+
+            modelBuilder.Entity("Cia.Api.Entities.TwoFactorRecoveryCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CodeHash")
+                        .IsUnique();
+
+                    b.ToTable("two_factor_recovery_codes", (string)null);
+                });
+
             modelBuilder.Entity("Cia.Api.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -498,6 +610,10 @@ namespace Cia.Api.Data.Migrations
                         .HasMaxLength(180)
                         .HasColumnType("character varying(180)");
 
+                    b.Property<long?>("LastTotpTimeStep")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -512,6 +628,16 @@ namespace Cia.Api.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("TwoFactorEnabledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TwoFactorSecretEncrypted")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.HasKey("Id");
 
@@ -648,6 +774,28 @@ namespace Cia.Api.Data.Migrations
                     b.Navigation("Session");
                 });
 
+            modelBuilder.Entity("Cia.Api.Entities.TwoFactorChallenge", b =>
+                {
+                    b.HasOne("Cia.Api.Entities.User", "User")
+                        .WithMany("TwoFactorChallenges")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Cia.Api.Entities.TwoFactorRecoveryCode", b =>
+                {
+                    b.HasOne("Cia.Api.Entities.User", "User")
+                        .WithMany("TwoFactorRecoveryCodes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Cia.Api.Entities.User", b =>
                 {
                     b.HasOne("Cia.Api.Entities.Customer", "Customer")
@@ -689,6 +837,10 @@ namespace Cia.Api.Data.Migrations
                     b.Navigation("AccessibilityPreferences");
 
                     b.Navigation("AssignedRequests");
+
+                    b.Navigation("TwoFactorChallenges");
+
+                    b.Navigation("TwoFactorRecoveryCodes");
                 });
 #pragma warning restore 612, 618
         }

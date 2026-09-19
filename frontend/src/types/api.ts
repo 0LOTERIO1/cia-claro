@@ -208,9 +208,47 @@ export interface UserDto {
   customerId?: string | null
 }
 
+export type LoginAttemptStatus = 'requiresSetup' | 'requiresCode'
+
+export interface LoginAttemptResponse {
+  status: LoginAttemptStatus
+  challengeId: string
+  expiresAt: string
+  manualKey?: string | null
+  otpAuthUri?: string | null
+}
+
 export interface LoginResponse {
   token: string
   user: UserDto
+  recoveryCodes?: string[] | null
+}
+
+export interface RegionalOutageDto {
+  id: string
+  postalCodePrefix: string
+  title: string
+  description: string
+  startedAt: string
+  expectedResolutionAt?: string | null
+  resolvedAt?: string | null
+  createdAt: string
+  active: boolean
+}
+
+export interface RegionalOutageCheckResponse {
+  postalCode: string
+  hasOutage: boolean
+  message: string
+  outage?: RegionalOutageDto | null
+}
+
+export interface CreateRegionalOutageRequest {
+  postalCodePrefix: string
+  title: string
+  description: string
+  startedAt?: string | null
+  expectedResolutionAt?: string | null
 }
 
 export interface HumanAgentRequestDto {

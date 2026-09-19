@@ -21,6 +21,9 @@ public class AppDbContext : DbContext
     public DbSet<ChannelLinkCode> ChannelLinkCodes => Set<ChannelLinkCode>();
     public DbSet<AccessibilityPreferences> AccessibilityPreferences => Set<AccessibilityPreferences>();
     public DbSet<ServiceRating> ServiceRatings => Set<ServiceRating>();
+    public DbSet<TwoFactorChallenge> TwoFactorChallenges => Set<TwoFactorChallenge>();
+    public DbSet<TwoFactorRecoveryCode> TwoFactorRecoveryCodes => Set<TwoFactorRecoveryCode>();
+    public DbSet<RegionalOutage> RegionalOutages => Set<RegionalOutage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -133,6 +136,8 @@ public class AppDbContext : DbContext
             entity.Property(x => x.PasswordHash).IsRequired().HasMaxLength(500);
             entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.CustomerId).HasMaxLength(40);
+            entity.Property(x => x.TwoFactorSecretEncrypted).HasMaxLength(1000);
+            entity.Property(x => x.LastTotpTimeStep).IsConcurrencyToken();
 
             entity.HasOne(x => x.Customer)
                 .WithMany()
@@ -153,6 +158,35 @@ public class AppDbContext : DbContext
             entity.Property(x => x.FontScale).HasPrecision(4, 2);
             entity.Property(x => x.Theme).HasConversion<string>().HasMaxLength(32);
             entity.Property(x => x.ReadingSpacing).HasConversion<string>().HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<TwoFactorChallenge>(entity =>
+        {
+            entity.ToTable("two_factor_challenges");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(16);
+            entity.Property(x => x.PendingSecretEncrypted).HasMaxLength(1000);
+            entity.Property(x => x.ConsumedAt).IsConcurrencyToken();
+            entity.HasIndex(x => new { x.UserId, x.ExpiresAt });
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.TwoFactorChallenges)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TwoFactorRecoveryCode>(entity =>
+        {
+            entity.ToTable("two_factor_recovery_codes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.CodeHash).IsRequired().HasMaxLength(64);
+            entity.Property(x => x.UsedAt).IsConcurrencyToken();
+            entity.HasIndex(x => new { x.UserId, x.CodeHash }).IsUnique();
+
+            entity.HasOne(x => x.User)
+                .WithMany(x => x.TwoFactorRecoveryCodes)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<HumanAgentRequest>(entity =>
@@ -228,6 +262,17 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.ServiceRatings)
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RegionalOutage>(entity =>
+        {
+            entity.ToTable("regional_outages");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PostalCodePrefix).IsRequired().HasMaxLength(8);
+            entity.Property(x => x.Title).IsRequired().HasMaxLength(120);
+            entity.Property(x => x.Description).IsRequired().HasMaxLength(500);
+            entity.HasIndex(x => new { x.PostalCodePrefix, x.ResolvedAt });
+            entity.HasIndex(x => x.StartedAt);
         });
     }
 }

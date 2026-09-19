@@ -2,6 +2,7 @@ using Cia.Api.DTOs;
 using Cia.Api.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cia.Api.Controllers;
 
@@ -18,12 +19,37 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(typeof(LoginAttemptResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var response = await _auth.LoginAsync(request, cancellationToken);
         return Ok(response);
+    }
+
+    [HttpPost("2fa/verify")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> VerifyTwoFactor(
+        [FromBody] VerifyTwoFactorRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _auth.VerifyTwoFactorAsync(request, cancellationToken));
+    }
+
+    [HttpPost("2fa/recovery")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RecoverTwoFactor(
+        [FromBody] RecoverTwoFactorRequest request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await _auth.RecoverTwoFactorAsync(request, cancellationToken));
     }
 
     [HttpGet("me")]

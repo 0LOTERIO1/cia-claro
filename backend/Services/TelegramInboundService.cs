@@ -13,6 +13,7 @@ public class TelegramInboundService : ITelegramInboundService
     private readonly ITelegramService _telegram;
     private readonly IChannelIdentityService _identities;
     private readonly TelegramCommandHandler _commands;
+    private readonly TelegramAbuseGuard? _abuseGuard;
     private readonly ILogger<TelegramInboundService> _logger;
 
     public TelegramInboundService(
@@ -20,12 +21,14 @@ public class TelegramInboundService : ITelegramInboundService
         ITelegramService telegram,
         IChannelIdentityService identities,
         TelegramCommandHandler commands,
-        ILogger<TelegramInboundService> logger)
+        ILogger<TelegramInboundService> logger,
+        TelegramAbuseGuard? abuseGuard = null)
     {
         _conversations = conversations;
         _telegram = telegram;
         _identities = identities;
         _commands = commands;
+        _abuseGuard = abuseGuard;
         _logger = logger;
     }
 
@@ -48,6 +51,17 @@ public class TelegramInboundService : ITelegramInboundService
         var username = message.From.Username;
         var messageText = Truncate(message.Text);
         var stage = "received";
+
+        var abuseDecision = _abuseGuard?.Evaluate(update.UpdateId, telegramChatId)
+            ?? TelegramUpdateDecision.Allowed;
+        if (abuseDecision != TelegramUpdateDecision.Allowed)
+        {
+            _logger.LogWarning(
+                "Telegram update ignored. UpdateId={UpdateId} Decision={Decision}",
+                update.UpdateId,
+                abuseDecision);
+            return;
+        }
 
         _logger.LogInformation(
             "Telegram update received. UpdateId={UpdateId} ChatId={ChatId} UserId={UserId} Username={Username}",

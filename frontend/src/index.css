@@ -638,6 +638,120 @@ tbody tr:hover { background: rgba(255,255,255,0.03); }
   cursor: pointer;
 }
 .login-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-form .text-btn,
+.login-form .secondary-btn {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.auth-secondary-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.auth-secondary-actions button { flex: 1; }
+.two-factor-setup .qr-code {
+  width: fit-content;
+  margin: 4px auto;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff;
+  line-height: 0;
+}
+.manual-key {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.manual-key summary { cursor: pointer; font-weight: 600; }
+.manual-key code,
+.recovery-codes code {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.recovery-codes ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.recovery-codes li {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: center;
+}
+.recovery-confirmation {
+  display: flex !important;
+  grid-template-columns: none;
+  align-items: flex-start;
+  gap: 8px !important;
+  color: var(--text) !important;
+}
+.recovery-confirmation input { width: 1.1rem; height: 1.1rem; accent-color: var(--red); }
+.auth-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.outage-checker form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+.outage-checker label,
+.outage-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.outage-checker input,
+.outage-form input,
+.outage-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #0f1218;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.outage-form textarea { min-height: 90px; resize: vertical; }
+.outage-result {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.outage-result p { margin-bottom: 0; }
+.outage-result.has-outage { background: rgba(255, 184, 77, 0.12); border-color: var(--warn); }
+.outage-result.is-clear { background: rgba(61, 214, 140, 0.12); border-color: var(--ok); }
+.outage-manager { display: grid; gap: 16px; }
+.outage-manager > header { display: flex; justify-content: space-between; gap: 12px; }
+.outage-form {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.5fr) 1fr;
+  gap: 12px;
+  align-items: end;
+}
+.outage-form .outage-description { grid-column: 1 / -1; }
+.outage-form button { justify-self: start; }
+.outage-list { display: grid; gap: 10px; }
+.outage-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-soft);
+}
+.outage-card.is-active { border-color: var(--warn); }
+.outage-card h3 { margin: 4px 0; }
+.outage-card p { margin: 4px 0; }
 .profile-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .profile-tabs button {
   border: 0;
@@ -994,6 +1108,9 @@ html[data-theme="light"] body {
 html[data-theme="light"] .composer,
 html[data-theme="light"] .composer input,
 html[data-theme="light"] .login-form input,
+html[data-theme="light"] .outage-checker input,
+html[data-theme="light"] .outage-form input,
+html[data-theme="light"] .outage-form textarea,
 html[data-theme="light"] .link-box {
   background: #fff;
   color: var(--text);
@@ -1018,12 +1135,23 @@ html[data-theme="light"] .protocol { color: #9b1b16; }
   html[data-theme="system"] .composer,
   html[data-theme="system"] .composer input,
   html[data-theme="system"] .login-form input,
+  html[data-theme="system"] .outage-checker input,
+  html[data-theme="system"] .outage-form input,
+  html[data-theme="system"] .outage-form textarea,
   html[data-theme="system"] .link-box {
     background: #fff;
     color: var(--text);
   }
   html[data-theme="system"] .from-assistant { background: #e8edf5; color: var(--text); }
   html[data-theme="system"] .protocol { color: #9b1b16; }
+}
+
+@media (max-width: 520px) {
+  .recovery-codes ul { grid-template-columns: 1fr; }
+  .outage-checker form,
+  .outage-form { grid-template-columns: 1fr; }
+  .outage-form .outage-description { grid-column: auto; }
+  .outage-card { align-items: stretch; flex-direction: column; }
 }
 
 html[data-high-contrast="true"],

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Cia.Api.DTOs;
+using Cia.Api.Enums;
 using Cia.Api.Interfaces;
 using Cia.Api.Services.Understanding;
 
@@ -10,17 +11,20 @@ public sealed class ConversationUnderstandingService : IConversationUnderstandin
     private readonly IAiProvider _provider;
     private readonly LocalFallbackAiProvider _fallback;
     private readonly ConversationGuardrails _guardrails;
+    private readonly PromptSecurityService _promptSecurity;
     private readonly ILogger<ConversationUnderstandingService> _logger;
 
     public ConversationUnderstandingService(
         IAiProvider provider,
         LocalFallbackAiProvider fallback,
         ConversationGuardrails guardrails,
+        PromptSecurityService promptSecurity,
         ILogger<ConversationUnderstandingService> logger)
     {
         _provider = provider;
         _fallback = fallback;
         _guardrails = guardrails;
+        _promptSecurity = promptSecurity;
         _logger = logger;
     }
 
@@ -29,6 +33,29 @@ public sealed class ConversationUnderstandingService : IConversationUnderstandin
         CancellationToken cancellationToken = default)
     {
         var watch = Stopwatch.StartNew();
+        var security = _promptSecurity.AssessInput(request.CurrentMessage);
+        if (security.Blocked)
+        {
+            watch.Stop();
+            _logger.LogWarning(
+                "Prompt injection blocked. Reasons={Reasons} Channel={Channel} Department={Department}",
+                string.Join(',', security.Reasons),
+                request.Channel,
+                request.CurrentDepartment);
+
+            return new ConversationUnderstandingResult
+            {
+                PrimaryIntent = IntentType.Unknown,
+                Confidence = 1,
+                ResponseSuggestion = PromptSecurityService.SafeRefusal,
+                Provider = nameof(PromptSecurityService),
+                UsedFallback = true,
+                LatencyMs = watch.ElapsedMilliseconds,
+                SecurityBlocked = true,
+                SecurityReasons = security.Reasons
+            };
+        }
+
         var providerName = _provider.GetType().Name;
         var usedFallback = false;
         ConversationUnderstandingResult result;

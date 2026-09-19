@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { DashboardCards } from '../components/DashboardCards'
 import { SessionTable } from '../components/SessionTable'
 import { AccessibilityLauncher } from '../components/AccessibilityLauncher'
+import { RegionalOutageManager } from '../components/RegionalOutageManager'
 import { useAuth } from '../auth/AuthContext'
 import { apiClient, getErrorMessage } from '../services/api'
 import type { DashboardDto, SessionDto } from '../types/api'
@@ -53,6 +54,7 @@ export function AdminDashboardPage() {
       {error && <div className="banner error" role="alert">{error}</div>}
       {loading && <p className="empty">Carregando indicadores...</p>}
       {dashboard && <DashboardCards dashboard={dashboard} />}
+      <RegionalOutageManager />
       <section className="panel admin-table-panel">
         <h2>Atendimentos</h2>
         <SessionTable sessions={sessions} />

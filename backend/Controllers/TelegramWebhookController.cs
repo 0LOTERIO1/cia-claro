@@ -5,6 +5,7 @@ using Cia.Api.DTOs;
 using Cia.Api.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 
 namespace Cia.Api.Controllers;
@@ -38,6 +39,8 @@ public class TelegramWebhookController : ControllerBase
     }
 
     [HttpPost("webhook")]
+    [EnableRateLimiting("telegram")]
+    [RequestSizeLimit(16_384)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Webhook(

@@ -1,11 +1,14 @@
 using Cia.Api.DTOs;
 using Cia.Api.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Cia.Api.Controllers;
 
 [ApiController]
 [Route("api/sessions")]
+[Authorize(Roles = "Agent,Admin")]
 public class SessionsController : ControllerBase
 {
     private readonly IConversationService _conversations;
@@ -83,6 +86,7 @@ public class SessionsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/handoff")]
+    [EnableRateLimiting("handoff")]
     [ProducesResponseType(typeof(HandoffDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Handoff(Guid id, CancellationToken cancellationToken)

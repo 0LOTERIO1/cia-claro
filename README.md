@@ -97,6 +97,32 @@ Ai__Model=gpt-4o-mini
 
 Nunca coloque a chave no código-fonte.
 
+## Autenticação em dois fatores
+
+Todos os perfis precisam cadastrar um aplicativo TOTP no primeiro login. Antes de iniciar a API,
+configure uma chave Base64 aleatória de 32 bytes para proteger os segredos dos autenticadores:
+
+```powershell
+$env:TwoFactor__EncryptionKey = [Convert]::ToBase64String(
+  [Security.Cryptography.RandomNumberGenerator]::GetBytes(32)
+)
+```
+
+Configure também `Jwt__Key` e as senhas de demonstração necessárias (`DemoUsers__Pedro__Password`,
+`DemoUsers__Lucas__Password`, `DemoUsers__Rafael__Password`, `DemoUsers__Agent__Password` e
+`DemoUsers__Admin__Password`). Em produção, não há senha padrão para usuários de demonstração.
+Depois de ler o QR code, salve os códigos de recuperação exibidos uma única vez.
+
+## Indisponibilidades regionais
+
+O protótipo permite que um administrador cadastre alertas simulados por prefixo de CEP no dashboard.
+O cliente pode consultar o CEP no portal e recebe imediatamente a descrição e a previsão de normalização
+quando existir um incidente ativo. Os dados ficam no PostgreSQL e podem ser encerrados pelo administrador.
+
+Esta funcionalidade usa uma fonte interna de demonstração, pois Enel e Vivo/Telefônica não oferecem uma
+API pública simples de indisponibilidades regionais. A camada de serviço foi separada para permitir uma
+integração oficial no futuro sem alterar a interface.
+
 ## Execução
 
 Abra dois terminais na raiz do repositório.

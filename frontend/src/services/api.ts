@@ -9,6 +9,7 @@ import type {
   DashboardDto,
   DepartmentType,
   HandoffDto,
+  LoginAttemptResponse,
   LoginResponse,
   MessageDto,
   SendMessageResponse,
@@ -17,6 +18,9 @@ import type {
   ChannelUnlinkDto,
   UserDto,
   AccessibilityPreferencesDto,
+  CreateRegionalOutageRequest,
+  RegionalOutageCheckResponse,
+  RegionalOutageDto,
   SubmitServiceRatingResponse,
   SessionLifecycleResponse,
 } from '../types/api'
@@ -37,6 +41,17 @@ api.interceptors.request.use((config) => {
   }
   return config
 })
+
+api.interceptors.response.use(
+  (response) => response,
+  (error: unknown) => {
+    if (isAxiosError(error) && error.response?.status === 401) {
+      clearAuth()
+      window.dispatchEvent(new Event('cia:auth-cleared'))
+    }
+    return Promise.reject(error)
+  },
+)
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -77,7 +92,18 @@ export function getErrorMessage(error: unknown): string {
 
 export const apiClient = {
   login: async (email: string, password: string) => {
-    const { data } = await api.post<LoginResponse>('/api/auth/login', { email, password })
+    const { data } = await api.post<LoginAttemptResponse>('/api/auth/login', { email, password })
+    return data
+  },
+  verifyTwoFactor: async (challengeId: string, code: string) => {
+    const { data } = await api.post<LoginResponse>('/api/auth/2fa/verify', { challengeId, code })
+    return data
+  },
+  recoverTwoFactor: async (challengeId: string, recoveryCode: string) => {
+    const { data } = await api.post<LoginResponse>('/api/auth/2fa/recovery', {
+      challengeId,
+      recoveryCode,
+    })
     return data
   },
   me: async () => {
@@ -124,6 +150,12 @@ export const apiClient = {
     const { data } = await api.get<ActiveSessionResponse>('/api/customer/active-session')
     return data
   },
+  checkRegionalOutage: async (postalCode: string) => {
+    const { data } = await api.get<RegionalOutageCheckResponse>('/api/customer/regional-outage', {
+      params: { postalCode },
+    })
+    return data
+  },
   resumeActiveSession: async () => {
     const { data } = await api.post<ActiveSessionResponse>('/api/customer/active-session/resume')
     return data
@@ -155,7 +187,7 @@ export const apiClient = {
     return data
   },
   createHandoff: async (sessionId: string) => {
-    const { data } = await api.post<HandoffDto>(`/api/sessions/${sessionId}/handoff`)
+    const { data } = await api.post<HandoffDto>(`/api/customer/sessions/${sessionId}/handoff`)
     return data
   },
   getDashboard: async () => {
@@ -168,6 +200,20 @@ export const apiClient = {
   },
   getAdminSession: async (id: string) => {
     const { data } = await api.get<AdminSessionDetailDto>(`/api/admin/sessions/${id}`)
+    return data
+  },
+  getRegionalOutages: async (includeResolved = true) => {
+    const { data } = await api.get<RegionalOutageDto[]>('/api/admin/outages', {
+      params: { includeResolved },
+    })
+    return data
+  },
+  createRegionalOutage: async (request: CreateRegionalOutageRequest) => {
+    const { data } = await api.post<RegionalOutageDto>('/api/admin/outages', request)
+    return data
+  },
+  resolveRegionalOutage: async (id: string) => {
+    const { data } = await api.post<RegionalOutageDto>(`/api/admin/outages/${id}/resolve`)
     return data
   },
   getAgentQueue: async () => {

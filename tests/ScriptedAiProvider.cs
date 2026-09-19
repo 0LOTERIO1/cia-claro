@@ -14,6 +14,7 @@ internal sealed class ScriptedAiProvider : IAiProvider
     public List<string> UnderstoodMessages { get; } = new();
     public Func<ConversationUnderstandingRequest, ConversationUnderstandingResult>? OnUnderstand { get; set; }
     public Exception? UnderstandException { get; set; }
+    public Func<string, string>? OnGenerateResponse { get; set; }
 
     public Task<IntentType> AnalyzeIntentAsync(string message, CancellationToken cancellationToken = default)
         => _fallback.AnalyzeIntentAsync(message, cancellationToken);
@@ -47,7 +48,9 @@ internal sealed class ScriptedAiProvider : IAiProvider
         CancellationToken cancellationToken = default,
         IReadOnlyList<Message>? recentMessages = null,
         ConversationUnderstandingResult? understanding = null)
-        => _fallback.GenerateResponseAsync(message, intent, context, customer, session, cancellationToken, recentMessages, understanding);
+        => OnGenerateResponse is not null
+            ? Task.FromResult(OnGenerateResponse(message))
+            : _fallback.GenerateResponseAsync(message, intent, context, customer, session, cancellationToken, recentMessages, understanding);
 
     public Task<string> GenerateHandoffSummaryAsync(
         Customer customer,

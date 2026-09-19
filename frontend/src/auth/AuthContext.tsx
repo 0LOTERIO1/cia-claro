@@ -1,10 +1,14 @@
-﻿import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
-import { apiClient, clearAuth, persistAuth, getStoredUser } from '../services/api'
-import type { UserDto, UserRole } from '../types/api'
+﻿import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { apiClient, clearAuth, getStoredToken, persistAuth } from '../services/api'
+import type { LoginAttemptResponse, LoginResponse, UserDto, UserRole } from '../types/api'
 
 interface AuthContextValue {
   user: UserDto | null
-  login: (email: string, password: string) => Promise<UserDto>
+  loading: boolean
+  login: (email: string, password: string) => Promise<LoginAttemptResponse>
+  verifyTwoFactor: (challengeId: string, code: string) => Promise<LoginResponse>
+  recoverTwoFactor: (challengeId: string, recoveryCode: string) => Promise<LoginResponse>
+  completeLogin: (response: LoginResponse) => void
   logout: () => void
   homeFor: (role?: UserRole) => string
 }
@@ -18,16 +22,47 @@ export function homeForRole(role?: UserRole): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserDto | null>(() => getStoredUser())
+  const [user, setUser] = useState<UserDto | null>(null)
+  const [loading, setLoading] = useState(() => Boolean(getStoredToken()))
+
+  useEffect(() => {
+    const token = getStoredToken()
+    if (!token) {
+      return
+    }
+
+    void apiClient
+      .me()
+      .then((storedUser) => {
+        persistAuth(token, storedUser)
+        setUser(storedUser)
+      })
+      .catch(() => {
+        clearAuth()
+        setUser(null)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    const handleCleared = () => {
+      setUser(null)
+      setLoading(false)
+    }
+    window.addEventListener('cia:auth-cleared', handleCleared)
+    return () => window.removeEventListener('cia:auth-cleared', handleCleared)
+  }, [])
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      login: async (email: string, password: string) => {
-        const response = await apiClient.login(email, password)
+      loading,
+      login: apiClient.login,
+      verifyTwoFactor: apiClient.verifyTwoFactor,
+      recoverTwoFactor: apiClient.recoverTwoFactor,
+      completeLogin: (response: LoginResponse) => {
         persistAuth(response.token, response.user)
         setUser(response.user)
-        return response.user
       },
       logout: () => {
         clearAuth()
@@ -35,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       homeFor: homeForRole,
     }),
-    [user],
+    [loading, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
